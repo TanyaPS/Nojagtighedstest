@@ -19,7 +19,7 @@ path = ["RTK_Niklas/", "RTK_Anna/", "RTK_Rene/"]
 pkt_path = "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/QGIS/Punktudvalg.xlsx"
 
 # nivellement
-#niv_paths = ["Anna/GNSS_niv_AP", "Niklas/GNSS_niv_ND"]
+#niv_paths = ["Anna/GNSS_niv_AP", "Niklas/GNSS_niv_ND", "Rene/GNSS_niv_Rene"]
 niv_paths = [
     "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Anna/GNSS_niv_AP",
     "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Niklas/GNSS_niv_ND",
@@ -32,7 +32,7 @@ for niv_path in niv_paths:
     for line in Lines:
         if re.match(r"^#.*", line):
             row = line.split(" ")
-            if re.match(r".*[uU]$", row[2]):
+            if re.match(r".*_[uU].*$", row[2]):
                 udflytning.append([row[1], row[6]])
     niv_file.close
 
@@ -89,7 +89,13 @@ for j, name in enumerate(maaler):
                     maaling = pkt_name[2]
                     udtraek = ""
                     if len(pkt_name) > 3:
-                        udtraek = pkt_name[3]
+                        if pkt_name[1] in ['u','U']:
+                            udtraek = pkt_name[1]
+                            net = pkt_name[2][0]
+                            instr_type = pkt_name[2][1]
+                            maaling = pkt_name[3]
+                        else:
+                            udtraek = pkt_name[3]
                     row.extend(extra)
                     row.extend(["Sept", name, net, instr_type, maaling, udtraek])
 
@@ -173,7 +179,13 @@ for j, name in enumerate(maaler):
                         maaling = pkt_name[2]
                         udtraek = ""
                         if len(pkt_name) > 3:
-                            udtraek = pkt_name[3]
+                            if pkt_name[1] in ['u','U']:
+                                udtraek = pkt_name[1]
+                                net = pkt_name[2][0]
+                                instr_type = pkt_name[2][1]
+                                maaling = pkt_name[3]
+                            else:
+                                udtraek = pkt_name[3]
                     elif spline[0] in ["GPS Sats", "GLONASS Sats", "Galileo Sats"]:
                         sats += float(spline[1])
                     else:
@@ -271,7 +283,13 @@ for j, name in enumerate(maaler):
                 maaling = pkt_name[2]
                 udtraek = ""
                 if len(pkt_name) > 3:
-                    udtraek = pkt_name[3]
+                    if pkt_name[1] in ['u','U']:
+                        udtraek = pkt_name[1]
+                        net = pkt_name[2][0]
+                        instr_type = pkt_name[2][1]
+                        maaling = pkt_name[3]
+                    else:
+                        udtraek = pkt_name[3]
                 trimble_row.extend(extra)
                 trimble_row.extend(["Trimble", name, net, instr_type, maaling, udtraek])
                 trimble_data.append(trimble_row)
@@ -455,6 +473,9 @@ for column in result[
 
 for i, number in enumerate(result["Diff [mm]"]):
     if not (result["Ellipsoidehøjde"][i] in [None, ""] or result["DB Ellipsoidehøjde"][i] in [None, ""]):
+        if re.match(r'.*Ellipsoid Højde.*', str(result["Ellipsoidehøjde"][i])):
+            result["Ellipsoidehøjde"][i] = re.sub('Ellipsoid Højde:', '', result["Ellipsoidehøjde"][i])
+            result["Ellipsoidehøjde"][i] = result["Ellipsoidehøjde"][i].strip()
         try:
             DB_E_h = result["DB Ellipsoidehøjde"][i]
             E_h = result["Ellipsoidehøjde"][i]
