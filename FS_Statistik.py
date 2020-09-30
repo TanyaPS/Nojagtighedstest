@@ -244,7 +244,7 @@ gr5 = first_GPS_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='g',
 gr6 = second_GPS_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='g', marker = 'x', ax=gr1, label = 'GPSnet: 2. måling')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylim(-300,300)
 plt.ylabel("Difference [mm]")
@@ -262,7 +262,7 @@ gr11 = first_GPS_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='
 gr12 = second_GPS_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='g', marker = 'x', ax=gr7, label = 'GPSnet: 2. måling')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylim(-300,300)
 plt.ylabel("Difference [mm]")
@@ -280,7 +280,7 @@ gr17 = first_GPS_Sept.plot(kind='scatter', x='Punkt', y='Difference', color='g',
 gr18 = second_GPS_Sept.plot(kind='scatter', x='Punkt', y='Difference', color='g', marker = 'x', ax=gr13, label = 'GPSnet: 2. måling')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylim(-300,300)
 plt.ylabel("Difference [mm]")
@@ -293,28 +293,28 @@ plt.savefig("Figurer/FS_RTK_Septentrio_tot.png")
 # Histogrammer
 fs_Leica.hist(column= 'Difference', bins =100)
 plt.axvline(fs_mean_Leica, color='w', linestyle='dashed', linewidth=2)
-plt.title('Fast Static Leica')
+plt.title('Fast Static Leica \n Gnst: ' + str(round(fs_mean_Leica,2)) + 'mm')
 plt.savefig("Figurer/Histogram_Diff_H_FS_all.png")
 
 fs_Trimble.hist(column= 'Difference', bins = 100)
 plt.axvline(fs_mean_Trimble, color='w', linestyle='dashed', linewidth=2)
-plt.title('Fast Static Trimble')
+plt.title('Fast Static Trimble \n Gnst: ' + str(round(fs_mean_Trimble,2)) + 'mm')
 plt.savefig("Figurer/Histogram_Diff_G_FS_all.png")
 
 fs_Sept.hist(column= 'Difference', bins = 100)
 plt.axvline(fs_mean_Sept, color='w', linestyle='dashed', linewidth=2)
-plt.title('Fast Static Septentrio')
+plt.title('Fast Static Septentrio \n Gnst: ' + str(round(fs_mean_Sept,2)) + 'mm')
 plt.savefig("Figurer/Histogram_Diff_S_FS_all.png")
 
-fs_Leica_dd.hist(column= 'til_2.maaling', bins =50)
+fs_Leica_dd.hist(column= 'til_2.maaling', bins =100)
 plt.title('Fast Static Leica \n Difference mellem 1. og 2. måling')
 plt.savefig("Figurer/Histogram_Forskel_H_FS_all.png")
 
-fs_Trimble_dd.hist(column= 'til_2.maaling', bins = 50)
+fs_Trimble_dd.hist(column= 'til_2.maaling', bins = 100)
 plt.title('Fast Static Trimble \n Difference mellem 1. og 2. måling')
 plt.savefig("Figurer/Histogram_Forskel_G_FS_all.png")
 
-fs_Sept_dd.hist(column= 'til_2.maaling', bins = 50)
+fs_Sept_dd.hist(column= 'til_2.maaling', bins = 100)
 plt.title('Fast Static Septentrio \n Difference mellem 1. og 2. måling')
 plt.savefig("Figurer/Histogram_Forskel_S_FS_all.png")
 
