@@ -17,6 +17,7 @@ pkter = data.column[2]
 date = data.column[9]
 tid = data.column[10]
 ellipsoideh = data.column[5]
+db_h = data.column[6]
 sats = data.column[19]
 sats_min = data.column[20]
 diff = data.column[8]
@@ -29,8 +30,24 @@ PDOP = data.column[24]
 PDOP_max = data.column[33]
 
 satellitter = []
+punkter = []
+dato = []
+e_h = []
+kvalitet = []
+meas_number = []
+instr = []
+netv = []
+sekt = []
+difference = []
+p_dop = []
 
 for i, sat in enumerate(sats):
+    if db_h[i] == '':
+        continue
+    if date[i][0:4] == 'Dato':
+        date[i]= date[i][5:]
+    if PDOP[i][0:4] == 'PDOP':
+        PDOP[i]= PDOP[i][5:]
     if sat == '':
         satellitter.append(int(sats_min[i]))
     else:
@@ -59,15 +76,22 @@ for i, sat in enumerate(sats):
 
         tid[i] = hrms[0] + ':' + hrms[1] + ':' + hrms[2] 
 
-
     date[i] = date[i] + ' ' + tid[i]
-    date[i] = datetime.strptime(date[i], '%d-%m-%Y %H:%M:%S')
-    diff[i] = float(diff[i])
+    dato.append(datetime.strptime(date[i], '%d-%m-%Y %H:%M:%S'))
+    difference.append(float(diff[i]))
     PDOP[i] = PDOP[i].replace(',', '.')
-    PDOP[i] = float(PDOP[i])
+    p_dop.append(float(PDOP[i]))
+    ellipsoideh[i] = ellipsoideh[i].replace(',', '.')
+    e_h.append(float(ellipsoideh[i]))
+    kvalitet.append(kval[i])
+    meas_number.append(meas_num[i])
+    instr.append(instrument[i])
+    netv.append(net[i])
+    sekt.append(sektor[i])
+    punkter.append(pkter[i])
 
 
-data_dict = {'Punkt': pkter, 'Dato': date, 'Ellipsoidehøjde': ellipsoideh,'Ellipsoidehøjdekvalitet': kval, 'Måling nr.': meas_num, 'Instrument': instrument, 'Net': net, 'Sektor': sektor, 'Satellitter': satellitter, 'Satellitter_gns': satellitter, 'Difference i mm': diff, 'PDOP': PDOP}
+data_dict = {'Punkt': punkter, 'Dato': dato, 'Ellipsoidehøjde': e_h,'Ellipsoidehøjdekvalitet': kvalitet, 'Måling nr.': meas_number, 'Instrument': instr, 'Net': netv, 'Sektor': sekt, 'Satellitter': satellitter, 'Satellitter_gns': satellitter, 'Difference i mm': difference, 'PDOP': p_dop}
 df = DataFrame(data_dict,columns=['Punkt', 'Dato', 'Ellipsoidehøjde', 'Ellipsoidehøjdekvalitet', 'Måling nr.', 'Instrument', 'Net', 'Sektor', 'Satellitter', 'Satellitter_gns', 'Difference i mm', 'PDOP'])
 
 mean_sat = df.groupby(['Punkt'])['Satellitter'].agg('mean').reset_index()
