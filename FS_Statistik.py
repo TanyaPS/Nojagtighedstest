@@ -12,6 +12,9 @@ from pandas import DataFrame
 import matplotlib.pyplot as plt
 import statistics
 import re
+import numpy as np
+from mpl_toolkits.axes_grid1 import host_subplot
+
 
 
 data = pyexcel.get_sheet(file_name="Cleaned_GNSS_RTK.xlsx", name_columns_by_row=0)
@@ -52,17 +55,20 @@ for i, m in enumerate(meas_num):
 """
 Funktioner benyttet
 """
-def mean_diff(df):
-    mean_df = df.groupby(['Punkt', 'Måling nr.'])['Difference'].agg('mean').reset_index()
+def mean_std(df, kolonne):
+    if kolonne == 'Difference':
+        new_df = df.groupby(['Punkt', 'Måling nr.'])['Difference'].agg('mean').reset_index()
+    elif kolonne == 'Ellipsoidehøjde':
+        new_df = df.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].agg('std').reset_index()
 
     dato_df = df.groupby(['Punkt', 'Måling nr.'])['Dato'].agg('min').reset_index()
     sat_df = df.groupby(['Punkt', 'Måling nr.'])['Satellitter_gns'].agg('min').reset_index()
     PDOP_df = df.groupby(['Punkt', 'Måling nr.'])['PDOP'].agg('mean').reset_index()
 
-    tem = mean_df.merge(dato_df, how='inner', left_on=["Punkt", "Måling nr."], right_on=["Punkt","Måling nr."])
+    tem = new_df.merge(dato_df, how='inner', left_on=["Punkt", "Måling nr."], right_on=["Punkt","Måling nr."])
     temp = tem.merge(PDOP_df, how='inner', left_on=["Punkt", "Måling nr."], right_on=["Punkt","Måling nr."])
-    mean_diff = temp.merge(sat_df, left_on=["Punkt", "Måling nr."], right_on=["Punkt","Måling nr."])
-    return mean_diff
+    mean_std = temp.merge(sat_df, left_on=["Punkt", "Måling nr."], right_on=["Punkt","Måling nr."])
+    return mean_std
 
 def diff_diff(first,second):
     first = first.set_index(['Punkt'])
@@ -101,13 +107,15 @@ fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Må
                 'Difference': fs_difference}
 fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference'])
 
+fs_df['Ellipsoidehøjde'] *=1000
+df['Ellipsoidehøjde'] *=1000
 
 """
 Opdeling til statistik og plot
 """
 # Fjern outliers
-df = df[:][(df.Difference > -950) & (df.Difference < 950)]
-fs_df = fs_df[:][(fs_df.Difference > -950) & (fs_df.Difference < 950)]
+df = df[:][(df.Difference > -100) & (df.Difference < 100)]
+fs_df = fs_df[:][(fs_df.Difference > -100) & (fs_df.Difference < 100)]
 
 """
 Opdel fast static
@@ -132,6 +140,12 @@ fs_second_Trimble= fs_diff_Trimble[:][fs_diff_Trimble['Måling nr.'] == 2]
 fs_first_Sept= fs_diff_Sept[:][fs_diff_Sept['Måling nr.'] == 1]
 fs_second_Sept= fs_diff_Sept[:][fs_diff_Sept['Måling nr.'] == 2]
 
+
+# Fast static std for målinger (std af ca 3 målinger) (både måling 1 og 2)
+fs_h_std_Leica = fs_Leica.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].agg('std').reset_index()
+fs_h_std_Trimble =  fs_Trimble.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].agg('std').reset_index()
+fs_h_std_Sept =  fs_Sept.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].agg('std').reset_index()
+
 """
 Opdel RTK
 """
@@ -149,12 +163,12 @@ GPS_Sept = GPS_df[:][GPS_df.Instrument == 'S']
 
 
 # Få mean difference for punkter (både måling 1 og 2)
-diff_smart_Leica = mean_diff(smart_Leica)
-diff_GPS_Leica = mean_diff(GPS_Leica)
-diff_smart_Trimble = mean_diff(smart_Trimble)
-diff_GPS_Trimble = mean_diff(GPS_Trimble)
-diff_smart_Sept = mean_diff(smart_Sept)
-diff_GPS_Sept = mean_diff(GPS_Sept)
+diff_smart_Leica = mean_std(smart_Leica, 'Difference')
+diff_GPS_Leica = mean_std(GPS_Leica, 'Difference')
+diff_smart_Trimble = mean_std(smart_Trimble, 'Difference')
+diff_GPS_Trimble = mean_std(GPS_Trimble, 'Difference')
+diff_smart_Sept = mean_std(smart_Sept, 'Difference')
+diff_GPS_Sept = mean_std(GPS_Sept, 'Difference')
 
 
 # Del i måling 1 og 2
@@ -171,6 +185,27 @@ second_smart_Sept= diff_smart_Sept[:][diff_smart_Sept['Måling nr.'] == 2]
 first_GPS_Sept= diff_GPS_Sept[:][diff_GPS_Sept['Måling nr.'] == 1]
 second_GPS_Sept= diff_GPS_Sept[:][diff_GPS_Sept['Måling nr.'] == 2]
 
+#RTK std for målinger (std af ca 3 målinger) (både måling 1 og 2)
+smart_Leica_h_std = mean_std(smart_Leica, 'Ellipsoidehøjde')
+GPS_Leica_h_std =  mean_std(GPS_Leica, 'Ellipsoidehøjde')
+smart_Trimble_h_std =  mean_std(smart_Trimble, 'Ellipsoidehøjde')
+GPS_Trimble_h_std =  mean_std(GPS_Trimble, 'Ellipsoidehøjde')
+smart_Sept_h_std = mean_std(smart_Sept, 'Ellipsoidehøjde')
+GPS_Sept_h_std =  mean_std(GPS_Sept, 'Ellipsoidehøjde')
+
+#Opdel std i måling 1 og 2
+first_smart_Leica_h_std= smart_Leica_h_std[:][smart_Leica_h_std['Måling nr.'] == 1]
+second_smart_Leica_h_std= smart_Leica_h_std[:][smart_Leica_h_std['Måling nr.'] == 2]
+first_GPS_Leica_h_std= GPS_Leica_h_std[:][GPS_Leica_h_std['Måling nr.'] == 1]
+second_GPS_Leica_h_std= GPS_Leica_h_std[:][GPS_Leica_h_std['Måling nr.'] == 2]
+first_smart_Trimble_h_std= smart_Trimble_h_std[:][smart_Trimble_h_std['Måling nr.'] == 1]
+second_smart_Trimble_h_std= smart_Trimble_h_std[:][smart_Trimble_h_std['Måling nr.'] == 2]
+first_GPS_Trimble_h_std= GPS_Trimble_h_std[:][GPS_Trimble_h_std['Måling nr.'] == 1]
+second_GPS_Trimble_h_std= GPS_Trimble_h_std[:][GPS_Trimble_h_std['Måling nr.'] == 2]
+first_smart_Sept_h_std= smart_Sept_h_std[:][smart_Sept_h_std['Måling nr.'] == 1]
+second_smart_Sept_h_std= smart_Sept_h_std[:][smart_Sept_h_std['Måling nr.'] == 2]
+first_GPS_Sept_h_std= GPS_Sept_h_std[:][GPS_Sept_h_std['Måling nr.'] == 1]
+second_GPS_Sept_h_std= GPS_Sept_h_std[:][GPS_Sept_h_std['Måling nr.'] == 2]
 
 
 """
@@ -206,6 +241,14 @@ fs_Leica_dd = diff_diff(fs_first_Leica, fs_second_Leica)
 fs_Trimble_dd = diff_diff(fs_first_Trimble, fs_second_Trimble)
 fs_Sept_dd = diff_diff(fs_first_Sept, fs_second_Sept)
 
+smart_Leica_dd = diff_diff(first_smart_Leica, second_smart_Leica)
+GPS_Leica_dd = diff_diff(first_GPS_Leica, second_GPS_Leica)
+smart_Trimble_dd = diff_diff(first_smart_Trimble, second_smart_Trimble)
+GPS_Trimble_dd = diff_diff(first_GPS_Trimble, second_GPS_Trimble)
+smart_Sept_dd = diff_diff(first_smart_Sept, second_smart_Sept)
+GPS_Sept_dd = diff_diff(first_GPS_Sept, second_GPS_Sept)
+
+#Sorter efter antal satellitter 
 
 """
 Statistik skrevet til fil
@@ -318,5 +361,184 @@ fs_Sept_dd.hist(column= 'til_2.maaling', bins = 100)
 plt.title('Fast Static Septentrio \n Difference mellem 1. og 2. måling')
 plt.savefig("Figurer/Histogram_Forskel_S_FS_all.png")
 
+# RTK Leica smartnet std af måling 1 og 2 og difference
+# generate the twin axes
+plt.figure(10)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(smart_Leica_dd.reset_index().sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(smart_Leica_dd.sort_values(by=['Satellitter_gns'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Difference')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(first_smart_Leica_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(first_smart_Leica_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p2 = par.scatter(x, y, color='darkorange', label = 'std 1. måling')
+x = np.array(second_smart_Leica_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(second_smart_Leica_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p3 = par.scatter(x, y, color='purple', label = 'std 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-5, 30)
+host.set_ylabel("Differnce [mm]")
+par.set_ylabel("Standard deviation [mm]")
+plt.title('Leica på Smartnet: \n standard deviation mellem 1. og 2. måling \n og difference')
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+
+
+
+# generate the twin axes
+plt.figure(11)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(GPS_Leica_dd.reset_index().sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(GPS_Leica_dd.sort_values(by=['Satellitter_gns'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Difference')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(first_GPS_Leica_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(first_GPS_Leica_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p2 = par.scatter(x, y, color='darkorange', label = 'std 1. måling')
+x = np.array(second_GPS_Leica_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(second_GPS_Leica_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p3 = par.scatter(x, y, color='purple', label = 'std 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-5, 30)
+host.set_ylabel("Differnce [mm]")
+par.set_ylabel("Standard deviation [mm]")
+plt.title('Leica på GPSnet: \n standard deviation mellem 1. og 2. måling \n og difference')
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+
+
+# generate the twin axes
+plt.figure(12)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(smart_Trimble_dd.reset_index().sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(smart_Trimble_dd.sort_values(by=['Satellitter_gns'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Difference')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(first_smart_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(first_smart_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p2 = par.scatter(x, y, color='darkorange', label = 'std 1. måling')
+x = np.array(second_smart_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(second_smart_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p3 = par.scatter(x, y, color='purple', label = 'std 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-5, 30)
+host.set_ylabel("Differnce [mm]")
+par.set_ylabel("Standard deviation [mm]")
+plt.title('Trimble på Smartnet: \n standard deviation mellem 1. og 2. måling \n og difference')
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+
+
+# generate the twin axes
+plt.figure(13)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(GPS_Trimble_dd.reset_index().sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(GPS_Trimble_dd.sort_values(by=['Satellitter_gns'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Difference')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(first_GPS_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(first_GPS_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p2 = par.scatter(x, y, color='darkorange', label = 'std 1. måling')
+x = np.array(second_GPS_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(second_GPS_Trimble_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p3 = par.scatter(x, y, color='purple', label = 'std 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-5, 30)
+host.set_ylabel("Differnce [mm]")
+par.set_ylabel("Standard deviation [mm]")
+plt.title('Trimble på GPSnet: \n standard deviation mellem 1. og 2. måling \n og difference')
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+
+# generate the twin axes
+plt.figure(14)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(smart_Sept_dd.reset_index().sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(smart_Sept_dd.sort_values(by=['Satellitter_gns'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Difference')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(first_smart_Sept_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(first_smart_Sept_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p2 = par.scatter(x, y, color='darkorange', label = 'std 1. måling')
+x = np.array(second_smart_Sept_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(second_smart_Sept_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p3 = par.scatter(x, y, color='purple', label = 'std 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-5, 30)
+host.set_ylabel("Differnce [mm]")
+par.set_ylabel("Standard deviation [mm]")
+plt.title('Septentrio på Smartnet: \n standard deviation mellem 1. og 2. måling \n og difference')
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+
+
+# generate the twin axes
+plt.figure(10)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(GPS_Sept_dd.reset_index().sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(GPS_Sept_dd.sort_values(by=['Satellitter_gns'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Difference')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(first_GPS_Sept_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(first_GPS_Sept_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p2 = par.scatter(x, y, color='darkorange', label = 'std 1. måling')
+x = np.array(second_GPS_Sept_h_std.sort_values(by=['Satellitter_gns'])['Punkt'])
+y = np.array(second_GPS_Sept_h_std.sort_values(by=['Satellitter_gns'])['Ellipsoidehøjde'])
+p3 = par.scatter(x, y, color='purple', label = 'std 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.855, top=0.9)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-5, 30)
+host.set_ylabel("Differnce [mm]")
+par.set_ylabel("Standard deviation [mm]")
+plt.title('Septentrio på GPSnet: \n standard deviation mellem 1. og 2. måling \n og difference')
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
 
 plt.show()

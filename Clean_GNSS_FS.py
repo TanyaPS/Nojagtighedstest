@@ -104,7 +104,6 @@ for i, p in enumerate(punkt):
             elip_db.append(sheet3[index, "Ellipsoidehøjde"])
         else:
             continue
-
         if elip_db[-1] == '':
             continue
         else:
