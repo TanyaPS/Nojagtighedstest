@@ -8,19 +8,19 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import re
 
-#FS_path = "../FS-beregninger/Resultater_SROK/GNSS_FS_resultat.xlsx"
-FS_path = "GNSS_FS_resultat.xlsx"
+FS_path = "../FS-beregninger/Resultater_SROK/GNSS_FS_resultat.xlsx"
+#FS_path = "GNSS_FS_resultat.xlsx"
 
-pkt_path = "Punktudvalg.xlsx"
-#pkt_path = "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/QGIS/Punktudvalg.xlsx"
+#pkt_path = "Punktudvalg.xlsx"
+pkt_path = "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/QGIS/Punktudvalg.xlsx"
 
 # nivellement
-niv_paths = ["Anna/GNSS_niv_AP", "Niklas/GNSS_niv_ND", "Rene/GNSS_niv_Rene"]
-#niv_paths = [
-#    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Anna/GNSS_niv_AP",
-#    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Niklas/GNSS_niv_ND",
-#    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Rene/GNSS_niv_Rene",
-#]
+#niv_paths = ["Anna/GNSS_niv_AP", "Niklas/GNSS_niv_ND", "Rene/GNSS_niv_Rene"]
+niv_paths = [
+   "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Anna/GNSS_niv_AP",
+   "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Niklas/GNSS_niv_ND",
+   "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Rene/GNSS_niv_Rene",
+]
 udflytning = []
 for niv_path in niv_paths:
     niv_file = open(niv_path, "r")
@@ -112,7 +112,7 @@ for i, p in enumerate(punkt):
                 h = float(h_m[i]) - float(udflytning[ind][1])
             else:
                 h = float(h_m[i])
-            diff.append((elip_db[-1]-h)*1000)
+            diff.append((h-elip_db[-1])*1000)
             pkt.append(p)
             elip_m.append(float(h_m[i]))
             instr.append(instrument[i])
