@@ -1,5 +1,6 @@
 """
-Læser Excel fil fra RTK2Excel_Ugns.py og tilføjer kolonne med gennemsnitligt antal satelitter for pkt
+Læser Excel-fil fra kørsel af RTK2Excel_Ugns.py og tilføjer kolonne med gennemsnitligt antal satelitter for hvert punkt.
+Kun relevante kolonner er taget med i output.
 """
 import pyexcel
 import pandas as pd
@@ -11,7 +12,7 @@ import re
 
 data = pyexcel.get_sheet(file_name="GNSS_RTK.xlsx", name_columns_by_row=0)
 
-
+# Relevante kolonner udtages
 sektor = data.column[12]
 pkter = data.column[2]
 date = data.column[9]
@@ -29,6 +30,7 @@ kval = data.column[7]
 PDOP = data.column[24]
 PDOP_max = data.column[33]
 
+#Lister oprettes til at fylde korrekt formateret data ind i
 satellitter = []
 punkter = []
 dato = []
@@ -41,6 +43,7 @@ sekt = []
 difference = []
 p_dop = []
 
+# Her ensrettes datostempling og parametre for de forskellige instrumenter
 for i, sat in enumerate(sats):
     if db_h[i] == '':
         continue
@@ -91,16 +94,49 @@ for i, sat in enumerate(sats):
     punkter.append(pkter[i])
 
 
-data_dict = {'Punkt': punkter, 'Dato': dato, 'Ellipsoidehøjde': e_h,'Ellipsoidehøjdekvalitet': kvalitet, 'Måling nr.': meas_number, 'Instrument': instr, 'Net': netv, 'Sektor': sekt, 'Satellitter': satellitter, 'Satellitter_gns': satellitter, 'Difference i mm': difference, 'PDOP': p_dop}
-df = DataFrame(data_dict,columns=['Punkt', 'Dato', 'Ellipsoidehøjde', 'Ellipsoidehøjdekvalitet', 'Måling nr.', 'Instrument', 'Net', 'Sektor', 'Satellitter', 'Satellitter_gns', 'Difference i mm', 'PDOP'])
+"""
+Indlæsning af data i dataframe
+"""
 
+data_dict = {'Punkt': punkter, 'Dato': dato, 'Ellipsoidehøjde': e_h,'Ellipsoidehøjdekvalitet': kvalitet, 'Måling nr.': meas_number,
+             'Instrument': instr, 'Net': netv, 'Sektor': sekt, 'Satellitter': satellitter, 'Difference i mm': difference, 'PDOP': p_dop}
+# Dataframe for alt data
+df = DataFrame(data_dict,columns=['Punkt', 'Dato', 'Ellipsoidehøjde', 'Ellipsoidehøjdekvalitet', 'Måling nr.', 'Instrument', 'Net', 
+                                  'Sektor', 'Satellitter', 'Difference i mm', 'PDOP'])
+# Dataframes for hvert instrument på eget net
+df_HH = df[:][(df.Instrument == 'H') & (df.Net == 'H')] 
+df_GG = df[:][(df.Instrument == 'G') & (df.Net == 'G')]
+
+
+'''
+Beregn en værdi for det gennemsnitlige antal satelitter pr. punkt
+'''
+
+# For alt data
 mean_sat = df.groupby(['Punkt'])['Satellitter'].agg('mean').reset_index()
-list_mean_sat = list(mean_sat.Punkt)
+df = pd.merge(df, mean_sat, left_on='Punkt', right_on='Punkt', how='outer', suffixes=(None, '_gns'))
+# Omarrangerer kolonner, så det passer med andre scripts
+cols = df.columns.tolist()
+cols = cols[:9] + cols[-1:] + cols[9:-1]
+df = df[cols]
 
-for i, pkt in enumerate(pkter):
-    index = list_mean_sat.index(pkt)
-    satellitter[i] = round(mean_sat.Satellitter[index],1)
+# For HH
+mean_sat = df_HH.groupby(['Punkt'])['Satellitter'].agg('mean').reset_index()
+df_HH = pd.merge(df_HH, mean_sat, left_on='Punkt', right_on='Punkt', how='outer', suffixes=(None, '_gns'))
+df_HH = df_HH[cols]
 
-df.Satellitter_gns = satellitter
+# For GG
+mean_sat = df_GG.groupby(['Punkt'])['Satellitter'].agg('mean').reset_index()
+df_GG = pd.merge(df_GG, mean_sat, left_on='Punkt', right_on='Punkt', how='outer', suffixes=(None, '_gns'))
+df_GG = df_GG[cols]
+
+
+'''
+Gem dataframes i excel-fil
+'''
 
 df.to_excel('Cleaned_GNSS_RTK.xlsx')
+
+df_HH.to_excel('Cleaned_GNSS_RTK_HH.xlsx')
+
+df_GG.to_excel('Cleaned_GNSS_RTK_GG.xlsx')

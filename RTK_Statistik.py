@@ -79,21 +79,29 @@ df = pd.DataFrame(data_dict, columns = ['Punkt','Dato','Ellipsoidehøjde','Ellip
                                         'Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP'])
 
 
+# Fjern outliers
+df = df[:][(df.Difference >= -47.5) & (df.Difference <= 60.5)]
+df = df[:][(df.PDOP < 3.5)]
+
 """
 Opdeling til statistik og plot
 """
 
-# Fjern outliers
-df = df[:][(df.Difference >= -950) & (df.Difference <= 950)]
-
-
-# Kun 5D-punkter
-femD_df = df[:][df.Ellipsoidehøjdekvalitet == 1]
+##### Vælg hvilken type plots du vil lave: Enten kun 5D,, sats under 18, sats ml 18-20 eller sats over 20 
+##### Vælg også hvordan figure skal gemmes ud fra hvad der plottes.
+# Kun 5D-punkter (for at vise grundfejlen)
+df = df[:][df.Ellipsoidehøjdekvalitet == 1]
+# Kun for satsantal under 18
+#df = df[:][df.Satellitter_gns < 18]
+# Kun for satsantal mellem 18 og 20
+#df = df[:][(df.Satellitter_gns >= 18) & (df.Satellitter_gns <= 20)]
+# Kun for satsantal over 20
+#df = df[:][df.Satellitter_gns > 20]
 
 
 # Del i net (GPSnet og Smartnet)
-GPS_df = femD_df[:][femD_df.Net == 'G']
-smart_df = femD_df[:][femD_df.Net == 'H']
+GPS_df = df[:][df.Net == 'G']
+smart_df = df[:][df.Net == 'H']
 
 # Del i instrumenter
 smart_Leica = smart_df[:][smart_df.Instrument == 'H']
@@ -156,7 +164,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Leica på Smartnet \n Gnst: ' + str(round(mean_smart_Leica,2)) + ' std: ' + str(round(stdev_smart_Leica,2)) )
-plt.savefig("Figurer/Diffkronologisk_H_H_5D.png")
+plt.savefig("Figurer/RTK_Diffkronologisk_H_H_5D.png")
 
 diff_GPS_Leica.plot(kind='scatter', x='Dato', y='Difference', c=diff_GPS_Leica.PDOP, vmin=0.8, vmax=2, cmap="plasma")
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -164,7 +172,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Leica på GPSnet \n Gnst: ' + str(round(mean_GPS_Leica,2)) + ' std: ' + str(round(stdev_GPS_Leica,2)))
-plt.savefig("Figurer/Diffkronologisk_H_G_5D.png")
+plt.savefig("Figurer/RTK_Diffkronologisk_PDOP_H_G_5D.png")
 
 diff_smart_Trimble.plot(kind='scatter', x='Dato', y='Difference', c=diff_smart_Trimble.PDOP, vmin=0.8, vmax=2, cmap="plasma")
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -172,7 +180,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Trimble på Smartnet \n Gnst: ' + str(round(mean_smart_Trimble,2)) + ' std: ' + str(round(stdev_smart_Trimble,2)))
-plt.savefig("Figurer/Diffkronologisk_G_H_5D.png")
+plt.savefig("Figurer/RTK_Diffkronologisk_PDOP_G_H_5D.png")
 
 diff_GPS_Trimble.plot(kind='scatter', x='Dato', y='Difference', c=diff_GPS_Trimble.PDOP, vmin=0.8, vmax=2, cmap="plasma")
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -180,7 +188,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Trimble på GPSnet \n Gnst: ' + str(round(mean_GPS_Trimble,2)) + ' std: ' + str(round(stdev_GPS_Trimble,2)))
-plt.savefig("Figurer/Diffkronologisk_G_G_5D.png")
+plt.savefig("Figurer/RTK_Diffkronologisk_PDOP_G_G_5D.png")
 
 diff_smart_Sept.plot(kind='scatter', x='Dato', y='Difference', c=diff_smart_Sept.PDOP, vmin=0.8, vmax=2, cmap="plasma")
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -188,7 +196,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Septentrio på Smartnet \n Gnst: ' + str(round(mean_smart_Sept,2)) + ' std: ' + str(round(stdev_smart_Sept,2)))
-plt.savefig("Figurer/Diffkronologisk_S_H_5D.png")
+plt.savefig("Figurer/RTK_Diffkronologisk_PDOP_S_H_5D.png")
 
 diff_GPS_Sept.plot(kind='scatter', x='Dato', y='Difference', c=diff_GPS_Sept.PDOP, vmin=0.8, vmax=2, cmap="plasma")
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -196,7 +204,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Septentrio på GPSnet \n Gnst: ' + str(round(mean_GPS_Sept,2)) + ' std: ' + str(round(stdev_GPS_Sept,2)))
-plt.savefig("Figurer/Diffkronologisk_S_G_5D.png")
+plt.savefig("Figurer/RTK_Diffkronologisk_PDOP_S_G_5D.png")
 
 
 # Histogram plot af differencer på hvert net og instrument
@@ -205,42 +213,42 @@ plt.axvline(mean_smart_Leica, color='w', linestyle='dashed', linewidth=2)
 plt.title('Leica på Smartnet \n Gnst: ' + str(round(mean_smart_Leica,2)) + 'mm')
 plt.ylabel("Antal")
 plt.xlabel("Difference [mm]")
-plt.savefig("Figurer/Histogram_H_H_5D.png")
+plt.savefig("Figurer/RTK_Histogram_H_H_5D.png")
 
 GPS_Leica.hist(column= 'Difference', bins=50)
 plt.axvline(mean_GPS_Leica, color='w', linestyle='dashed', linewidth=2)
 plt.title('Leica på GPSnet \n Gnst: ' + str(round(mean_GPS_Leica,2)) + 'mm')
 plt.ylabel("Antal")
 plt.xlabel("Difference [mm]")
-plt.savefig("Figurer/Histogram_H_G_5D.png")
+plt.savefig("Figurer/RTK_Histogram_H_G_5D.png")
 
 smart_Trimble.hist(column= 'Difference', bins=50)
 plt.axvline(mean_smart_Trimble, color='w', linestyle='dashed', linewidth=2)
 plt.title('Trimble på Smartnet \n Gnst: ' + str(round(mean_smart_Trimble,2)) + 'mm')
 plt.ylabel("Antal")
 plt.xlabel("Difference [mm]")
-plt.savefig("Figurer/Histogram_G_H_5D.png")
+plt.savefig("Figurer/RTK_Histogram_G_H_5D.png")
 
 GPS_Trimble.hist(column= 'Difference', bins=50)
 plt.axvline(mean_GPS_Trimble, color='w', linestyle='dashed', linewidth=2)
 plt.title('Trimble på GPSnet \n Gnst: ' + str(round(mean_GPS_Trimble,2)) + 'mm')
 plt.ylabel("Antal")
 plt.xlabel("Difference [mm]")
-plt.savefig("Figurer/Histogram_G_G_5D.png")
+plt.savefig("Figurer/RTK_Histogram_G_G_5D.png")
 
 smart_Sept.hist(column= 'Difference', bins=50)
 plt.axvline(mean_smart_Sept, color='w', linestyle='dashed', linewidth=2)
 plt.title('Septentrio på Smartnet \n Gnst: ' + str(round(mean_smart_Sept,2)) + 'mm')
 plt.ylabel("Antal")
 plt.xlabel("Difference [mm]")
-plt.savefig("Figurer/Histogram_S_H_5D.png")
+plt.savefig("Figurer/RTK_Histogram_S_H_5D.png")
 
 GPS_Sept.hist(column= 'Difference', bins=50)
 plt.axvline(mean_GPS_Sept, color='w', linestyle='dashed', linewidth=2)
 plt.title('Septentrio på GPSnet \n Gnst: ' + str(round(mean_GPS_Sept,2)) + 'mm')
 plt.ylabel("Antal")
 plt.xlabel("Difference [mm]")
-plt.savefig("Figurer/Histogram_S_G_5D.png")
+plt.savefig("Figurer/RTK_Histogram_S_G_5D.png")
 
 
 # Difference mellem 1. og 2. RTK-måling
@@ -250,7 +258,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Leica på Smartnet \n Forskel mellem 1. og 2. RTK-målings middelværdi')
-plt.savefig("Figurer/Forskel1og2_H_H_5D.png")
+plt.savefig("Figurer/RTK_Forskel1og2_PDOP_H_H_5D.png")
 
 GPS_Leica_dd.reset_index().plot(kind='scatter', x='Punkt', y='til_2.maaling', c=GPS_Leica_dd.PDOP, vmin=0.8, vmax=2, cmap="plasma")  
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -258,7 +266,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Leica på GPSnet \n Forskel mellem 1. og 2. RTK-målings middelværdi')
-plt.savefig("Figurer/Forskel1og2_H_G_5D.png")
+plt.savefig("Figurer/RTK_Forskel1og2_PDOP_H_G_5D.png")
 
 smart_Trimble_dd.reset_index().plot(kind='scatter', x='Punkt', y='til_2.maaling', c=smart_Trimble_dd.PDOP, vmin=0.8, vmax=2, cmap="plasma")  
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -266,7 +274,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Trimble på Smartnet \n Forskel mellem 1. og 2. RTK-målings middelværdi')
-plt.savefig("Figurer/Forskel1og2_G_H_5D.png")
+plt.savefig("Figurer/RTK_Forskel1og2_PDOP_G_H_5D.png")
 
 GPS_Trimble_dd.reset_index().plot(kind='scatter', x='Punkt', y='til_2.maaling', c=GPS_Trimble_dd.PDOP, vmin=0.8, vmax=2, cmap="plasma")  
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -274,7 +282,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Trimble på GPSnet \n Forskel mellem 1. og 2. RTK-målings middelværdi')
-plt.savefig("Figurer/Forskel1og2_G_G_5D.png")
+plt.savefig("Figurer/RTK_Forskel1og2_PDOP_G_G_5D.png")
 
 smart_Sept_dd.reset_index().plot(kind='scatter', x='Punkt', y='til_2.maaling', c=smart_Sept_dd.PDOP, vmin=0.8, vmax=2, cmap="plasma")  
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -282,7 +290,7 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Septentrio på Smartnet \n Forskel mellem 1. og 2. RTK-målings middelværdi')
-plt.savefig("Figurer/Forskel1og2_S_H_5D.png")
+plt.savefig("Figurer/RTK_Forskel1og2_PDOP_S_H_5D.png")
 
 GPS_Sept_dd.reset_index().plot(kind='scatter', x='Punkt', y='til_2.maaling', c=GPS_Sept_dd.PDOP, vmin=0.8, vmax=2, cmap="plasma")  
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
@@ -290,6 +298,6 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.ylim(-70,70)
 plt.title('Septentrio på GPSnet \n Forskel mellem 1. og 2. RTK-målings middelværdi')
-plt.savefig("Figurer/Forskel1og2_S_G_5D.png")
+plt.savefig("Figurer/RTK_Forskel1og2_PDOP_S_G_5D.png")
 
 #plt.show()

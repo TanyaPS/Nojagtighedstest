@@ -1,5 +1,5 @@
 """
-Plot af satellitantal for punkter i RTK-målingen i GNSS-nøjagtighedsundersøgeles
+Plot af satellitantal for punkter i RTK-målingen i GNSS-nøjagtighedsundersøgelse
 
 Kør Clean_GNSS_RTK.py først
 Scriptet her læser da fra Cleaned_GNSS_RTK.xlsx
@@ -40,6 +40,7 @@ df = pd.DataFrame(data_dict, columns = ['Punkt','Dato','Ellipsoidehøjde','Ellip
                                         'Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP'])
 
 
+
 """
 Opdeling til plot
 """
@@ -53,7 +54,45 @@ df_unik['Sektor']=df_unik['Sektor'].replace(['land'], 1)
 
 
 """
- PLOTS
+Find konstanter til outliers
+"""
+print(('Median af alle differencer: ') + str(statistics.median(df.Difference)))
+print(('Median af Hs differencer: ') + str(statistics.median(df[:][(df.Instrument == 'H') & (df.Net == 'H')].Difference)))
+print(('Median af Gs differencer: ') + str(statistics.median(df[:][(df.Instrument == 'G') & (df.Net == 'G')].Difference)))
+
+print(('Kvantiler for alle differencer: ') + str(statistics.quantiles(df.Difference, method='inclusive')))
+print(('Kvantiler for Hs differencer: ') + str(statistics.quantiles(df[:][(df.Instrument == 'H') & (df.Net == 'H')].Difference, method='inclusive')))
+print(('Kvantiler for Gs differencer: ') + str(statistics.quantiles(df[:][(df.Instrument == 'G') & (df.Net == 'G')].Difference, method='inclusive')))
+
+Q1=statistics.quantiles(df.Difference, method='inclusive')[0]
+Q3=statistics.quantiles(df.Difference, method='inclusive')[-1]
+nedre=Q1-(Q3-Q1)*1.5
+oevre=Q3+(Q3-Q1)*1.5
+
+Q1H=statistics.quantiles(df[:][(df.Instrument == 'H') & (df.Net == 'H')].Difference, method='inclusive')[0]
+Q3H=statistics.quantiles(df[:][(df.Instrument == 'H') & (df.Net == 'H')].Difference, method='inclusive')[-1]
+nedreH=Q1H-(Q3H-Q1H)*1.5
+oevreH=Q3H+(Q3H-Q1H)*1.5
+
+Q1G=statistics.quantiles(df[:][(df.Instrument == 'G') & (df.Net == 'G')].Difference, method='inclusive')[0]
+Q3G=statistics.quantiles(df[:][(df.Instrument == 'G') & (df.Net == 'G')].Difference, method='inclusive')[-1]
+nedreG=Q1G-(Q3G-Q1G)*1.5
+oevreG=Q3G+(Q3G-Q1G)*1.5
+
+# Fra Q1 - (Q3-Q1)*1.5  til Q3 + (Q3-Q1)*1.5 (standard for outliers)
+print('Interne grænser for alle RTK: Fra ' + str(nedre) + ' til ' + str(oevre))
+print('Interne grænser for Hs RTK: Fra ' + str(nedreH) + ' til ' + str(oevreH))
+print('Interne grænser for Gs RTK: Fra ' + str(nedreG) + ' til ' + str(oevreG))
+
+
+"""
+Inddeling i kvantiler ift. satellitantal
+"""
+print('Del ind i satellitter: ' + str(statistics.quantiles(df.Satellitter_gns, n=3, method='inclusive')))
+
+
+"""
+PLOTS
 """
 
 # Satellitantal pr. punkt, farvet efter sektor
@@ -148,5 +187,6 @@ plt.title('Alle RTK-målinger')
 #ax = plt.gca()
 #ax.axes.xaxis.set_ticks([])
 plt.savefig("Figurer/RTK_all_outliers_PDOP_vs_Difference.png")
+
 
 #plt.show()

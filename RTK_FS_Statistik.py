@@ -1,5 +1,5 @@
 """
-Beregning og plot af diverse data og statistiske værdier for FS-målingen i GNSS-nøjagtighedsundersøgelse
+Beregning og plot af diverse data og statistiske værdier for RTK- og FS-målingen i GNSS-nøjagtighedsundersøgelse
 
 Kør Clean_GNSS_FS.py først og Clean_GNSS_RTK.py
 Scriptet her læser da fra Cleaned_*.xlsx 
@@ -110,12 +110,52 @@ fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Mål
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
 
+
+"""
+Find konstanter til outliers for FS
+"""
+print(('Median af alle FS differencer: ') + str(statistics.median(fs_df.Difference)))
+print(('Median af Hs FS differencer: ') + str(statistics.median(fs_df[:][(fs_df.Instrument == 'H')].Difference)))
+print(('Median af Gs FS differencer: ') + str(statistics.median(fs_df[:][(fs_df.Instrument == 'G')].Difference)))
+
+print(('Kvantiler for alle FS differencer: ') + str(statistics.quantiles(fs_df.Difference, method='inclusive')))
+print(('Kvantiler for Hs FS differencer: ') + str(statistics.quantiles(fs_df[:][(fs_df.Instrument == 'H')].Difference, method='inclusive')))
+print(('Kvantiler for Gs FS differencer: ') + str(statistics.quantiles(fs_df[:][(fs_df.Instrument == 'G')].Difference, method='inclusive')))
+
+Q1=statistics.quantiles(fs_df.Difference, method='inclusive')[0]
+Q3=statistics.quantiles(fs_df.Difference, method='inclusive')[-1]
+nedre=Q1-(Q3-Q1)*1.5
+oevre=Q3+(Q3-Q1)*1.5
+
+Q1S=statistics.quantiles(fs_df[:][(fs_df.Instrument == 'S')].Difference, method='inclusive')[0]
+Q3S=statistics.quantiles(fs_df[:][(fs_df.Instrument == 'S')].Difference, method='inclusive')[-1]
+nedreS=Q1S-(Q3S-Q1S)*1.5
+oevreS=Q3S+(Q3S-Q1S)*1.5
+
+Q1H=statistics.quantiles(fs_df[:][(fs_df.Instrument == 'H')].Difference, method='inclusive')[0]
+Q3H=statistics.quantiles(fs_df[:][(fs_df.Instrument == 'H')].Difference, method='inclusive')[-1]
+nedreH=Q1H-(Q3H-Q1H)*1.5
+oevreH=Q3H+(Q3H-Q1H)*1.5
+
+Q1G=statistics.quantiles(fs_df[:][(fs_df.Instrument == 'G')].Difference, method='inclusive')[0]
+Q3G=statistics.quantiles(fs_df[:][(fs_df.Instrument == 'G')].Difference, method='inclusive')[-1]
+nedreG=Q1G-(Q3G-Q1G)*1.5
+oevreG=Q3G+(Q3G-Q1G)*1.5
+
+# Fra Q1 - (Q3-Q1)*1.5  til Q3 + (Q3-Q1)*1.5 (standard for outliers)
+print('Interne grænser for alle FS: Fra ' + str(nedre) + ' til ' + str(oevre))
+print('Interne grænser for alle FS på S: Fra ' + str(nedreS) + ' til ' + str(oevreS))
+print('Interne grænser for alle FS på H: Fra ' + str(nedreH) + ' til ' + str(oevreH))
+print('Interne grænser for alle FS på G: Fra ' + str(nedreG) + ' til ' + str(oevreG))
+
+
 """
 Opdeling til statistik og plot
 """
 # Fjern outliers
-df = df[:][(df.Difference > -100) & (df.Difference < 100)]
-fs_df = fs_df[:][(fs_df.Difference > -100) & (fs_df.Difference < 100)]
+df = df[:][(df.Difference >= -47.5) & (df.Difference <= 60.5)]
+df = df[:][(df.PDOP < 3.5)]
+fs_df = fs_df[:][(fs_df.Difference > -39.9 ) & (fs_df.Difference < 50.0)]
 
 """
 Opdel fast static
@@ -294,7 +334,6 @@ plt.ylabel("Antal")
 plt.title('Fast Static Trimble \n Gnst: ' + str(round(fs_mean_Trimble,2)) + 'mm', fontsize=10)
 plt.savefig("Figurer/FS_Histogram_Diff_G_all.png")
 
-
 fs_Sept.hist(column= 'Difference', bins = 50)
 plt.axvline(fs_mean_Sept, color='w', linestyle='dashed', linewidth=2)
 plt.title('Fast Static Septentrio \n Gnst: ' + str(round(fs_mean_Sept,2)) + 'mm', fontsize=10)
@@ -320,7 +359,8 @@ plt.ylabel("Antal")
 plt.title('Fast Static Septentrio \n Difference mellem 1. og 2. måling', fontsize=10)
 plt.savefig("Figurer/FS_Histogram_Forskel_S_all.png")
 
-
+plt.close('all')
+# Vi ændrer lige figurstørrelsen:
 # get current size
 fig_size = plt.rcParams["figure.figsize"]
 #print ("Current size:", fig_size)
@@ -330,6 +370,104 @@ fig_size[0] = 14
 fig_size[1] = 6
 plt.rcParams["figure.figsize"] = fig_size
 #print ("Current size:", fig_size)
+
+
+# Plot alle FS-data alene
+fs_df.plot(x='Punkt', y='Difference', s=3, kind='scatter').grid(axis='y')
+plt.title('Alle FS-målinger')
+plt.xlabel('Punkt')
+plt.ylabel('Differencer [mm]')
+plt.xticks(rotation='vertical')
+plt.savefig("Figurer/FS_Diffkronologisk_all.png")
+
+
+# FS-data for Leica
+gr1 = fs_first_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='darkgreen', marker = '.', label = 'Fast static: 1. måling')
+gr2 = fs_second_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='darkgreen', marker = 'x',  ax=gr1, label = 'Fast static: 2. måling')    
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('Fast static for Leica')
+plt.savefig("Figurer_Leica/FS_H_all.png")
+
+
+# FS for Leica: Difference for måling 1 og 2, samt forskel ml. differencerne 
+# generate the twin axes
+plt.figure(3)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(fs_Leica_dd.reset_index().sort_values(by=['Punkt'])['Punkt'])
+y = np.array(fs_Leica_dd.sort_values(by=['Punkt'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Forskel ml. 1. og 2. måling')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(fs_first_Leica.sort_values(by=['Punkt'])['Punkt'])
+y = np.array(fs_first_Leica.sort_values(by=['Punkt'])['Difference'])
+p2 = par.scatter(x, y, s=6, color='darkorange', label = 'Diff. 1. måling')
+x = np.array(fs_second_Leica.sort_values(by=['Punkt'])['Punkt'])
+y = np.array(fs_second_Leica.sort_values(by=['Punkt'])['Difference'])
+p3 = par.scatter(x, y, s=6, color='purple', label = 'Diff. 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-100, 100)
+host.set_ylabel("Forskel ml. 1. og 2. måling [mm]")
+par.set_ylabel("Difference [mm]")
+plt.title('FS Leica \n \n Difference på 1. og 2. måling samt forskel mellem 1. og 2. måling', fontsize=10)
+plt.savefig("Figurer_Leica/FS_RTK_diff_diff_H_H.png")
+
+
+
+
+# FS-data for Trimble
+gr7 = fs_first_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='firebrick', marker = '.', label = 'Fast static: 1. måling')
+gr8 = fs_second_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='firebrick', marker = 'x',  ax=gr7, label = 'Fast static: 2. måling') 
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('Fast static for Leica')
+plt.savefig("Figurer_Trimble/FS_G_all.png")
+
+
+# FS for Trimble: Difference for måling 1 og 2, samt forskel ml. differencerne 
+# generate the twin axes
+plt.figure(5)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the bars (use host. instead of plt.)
+x = np.array(fs_Trimble_dd.reset_index().sort_values(by=['Punkt'])['Punkt'])
+y = np.array(fs_Trimble_dd.sort_values(by=['Punkt'])['Difference'])
+p1 = host.bar(x, y, color='steelblue', label = 'Forskel ml. 1. og 2. måling')
+
+# plot the scatter plot (use par. instead of plt.)
+x = np.array(fs_first_Trimble.sort_values(by=['Punkt'])['Punkt'])
+y = np.array(fs_first_Trimble.sort_values(by=['Punkt'])['Difference'])
+p2 = par.scatter(x, y, s=6, color='darkorange', label = 'Diff. 1. måling')
+x = np.array(fs_second_Trimble.sort_values(by=['Punkt'])['Punkt'])
+y = np.array(fs_second_Trimble.sort_values(by=['Punkt'])['Difference'])
+p3 = par.scatter(x, y, s=6, color='purple', label = 'Diff. 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+host.set_ylim(-100, 100)
+par.set_ylim(-100, 100)
+host.set_ylabel("Forskel ml. 1. og 2. måling [mm]")
+par.set_ylabel("Difference [mm]")
+plt.title('FS Trimble \n \n Difference på 1. og 2. måling samt forskel mellem 1. og 2. måling', fontsize=10)
+plt.savefig("Figurer_Trimble/FS_RTK_diff_diff_G_G.png")
+
 
 
 # RTK og FS plottet sammen for Leica
@@ -349,7 +487,7 @@ plt.title('Leica')
 #plt.grid(color='light grey', ls='--', zorder=0)
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/FS_RTK_Leica_tot.png")
+plt.savefig("Figurer/FS_RTK_H_all.png")
 
 # RTK og FS plottet sammen for Trimble
 gr7 = fs_first_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='r', marker = '.', label = 'Fast static: 1. måling')
@@ -367,7 +505,7 @@ plt.ylabel("Difference [mm]")
 plt.title('Trimble')
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/FS_RTK_Trimble_tot.png")
+plt.savefig("Figurer/FS_RTK_G_all.png")
 
 # RTK og FS plottet sammen for Septentrio
 gr13 = fs_first_Sept.plot(kind='scatter', x='Punkt', y='Difference', color='r', marker = '.', label = 'Fast static: 1. måling')
@@ -385,12 +523,43 @@ plt.ylabel("Difference [mm]")
 plt.title('Septentrio')
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/FS_RTK_Septentrio_tot.png")
+plt.savefig("Figurer/FS_RTK_S_all.png")
+
+
+# RTK og FS plottet sammen for Leica - men uden data fra GPSnet
+gr1 = fs_first_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='b', marker = '.', label = 'Fast static: 1. måling')
+gr2 = fs_second_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='b', marker = 'x',  ax=gr1, label = 'Fast static: 2. måling')    
+gr3 = first_smart_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='darkgreen', marker = '.', ax=gr1, label = 'Smartnet: 1. måling')
+gr4 = second_smart_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='darkgreen', marker = 'x', ax=gr1, label = 'Smartnet: 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('Leica')
+plt.savefig("Figurer_Leica/FS_RTK_H_all.png")
+
+# RTK og FS plottet sammen for Trimble - men uden data fra Smartnet 
+gr7 = fs_first_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='b', marker = '.', label = 'Fast static: 1. måling')
+gr8 = fs_second_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='b', marker = 'x',  ax=gr7, label = 'Fast static: 2. måling')    
+gr11 = first_GPS_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='firebrick', marker = '.', ax=gr7, label = 'GPSnet: 1. måling')
+gr12 = second_GPS_Trimble.plot(kind='scatter', x='Punkt', y='Difference', color='firebrick', marker = 'x', ax=gr7, label = 'GPSnet: 2. måling')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('Trimble')
+plt.savefig("Figurer_Trimble/FS_RTK_G_all.png")
+
+plt.close('all')
 
 
 # RTK Leica på smartnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne 
 # generate the twin axes
-plt.figure(10)
+plt.figure(11)
 host = host_subplot(111)
 par = host.twinx()
 
@@ -417,12 +586,12 @@ par.set_ylabel("Spredning [mm]")
 plt.title('Leica på Smartnet \n \n Spredning på 1. og 2. måling samt differencen mellem middelværdi på 1. og 2. måling', fontsize=10)
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/RTK_std_diff_H_H.png")
+plt.savefig("Figurer_Leica/RTK_std_diff_H_H.png")
 
 
 # RTK Leica på GPSnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne
 # generate the twin axes
-plt.figure(11)
+plt.figure(12)
 host = host_subplot(111)
 par = host.twinx()
 
@@ -454,7 +623,7 @@ plt.savefig("Figurer/RTK_std_diff_H_G.png")
 
 # RTK Trimble på smartnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne
 # generate the twin axes
-plt.figure(12)
+plt.figure(13)
 host = host_subplot(111)
 par = host.twinx()
 
@@ -486,7 +655,7 @@ plt.savefig("Figurer/RTK_std_diff_G_H.png")
 
 # RTK Trimble på GPSnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne
 # generate the twin axes
-plt.figure(13)
+plt.figure(14)
 host = host_subplot(111)
 par = host.twinx()
 
@@ -513,12 +682,12 @@ par.set_ylabel("Spredning [mm]")
 plt.title('Trimble på GPSnet \n \n Spredning på 1. og 2. måling samt differencen mellem middelværdi på 1. og 2. måling', fontsize=10)
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/RTK_std_diff_G_G.png")
+plt.savefig("Figurer_Trimble/RTK_std_diff_G_G.png")
 
 
 # RTK Septentrio på Smartnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne
 # generate the twin axes
-plt.figure(14)
+plt.figure(15)
 host = host_subplot(111)
 par = host.twinx()
 
@@ -550,7 +719,7 @@ plt.savefig("Figurer/RTK_std_diff_S_H.png")
 
 # RTK Septentrio på GPSnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne
 # generate the twin axes
-plt.figure(15)
+plt.figure(16)
 host = host_subplot(111)
 par = host.twinx()
 
