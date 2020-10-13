@@ -24,27 +24,28 @@ sektor = data.column[8]
 satellitter = data.column[9]
 satellitter_gns = data.column[10]
 difference = data.column[11]
-
+PDOP = data.column[12]
 
 """
 Funktioner benyttet
 """
 
-def mean_sat(list_n_i, meanby):
-    mean_net_i_land = list_n_i[0].groupby(['Punkt'])[meanby].agg('mean').reset_index()
-    mean_net_i_lav = list_n_i[1].groupby(['Punkt'])[meanby].agg('mean').reset_index()
-    mean_net_i_høj = list_n_i[2].groupby(['Punkt'])[meanby].agg('mean').reset_index()
+def mean_by(list_n_i, meanby):
+    # x, y og z afh. af inputlisten. Kan fx. være land, lav og høj, eller sats under 18, sats ml. 18-20 og sats over 20
+    mean_net_i_x = list_n_i[0].groupby(['Punkt'])[meanby].agg('mean').reset_index()
+    mean_net_i_y = list_n_i[1].groupby(['Punkt'])[meanby].agg('mean').reset_index()
+    mean_net_i_z = list_n_i[2].groupby(['Punkt'])[meanby].agg('mean').reset_index()
 
-    d_net_i_land = list_n_i[0].groupby(['Punkt'])['Dato'].agg('min').reset_index()
-    d_net_i_lav = list_n_i[1].groupby(['Punkt'])['Dato'].agg('min').reset_index()
-    d_net_i_høj = list_n_i[2].groupby(['Punkt'])['Dato'].agg('min').reset_index()
+    d_net_i_x = list_n_i[0].groupby(['Punkt'])['Dato'].agg('min').reset_index()
+    d_net_i_y = list_n_i[1].groupby(['Punkt'])['Dato'].agg('min').reset_index()
+    d_net_i_z = list_n_i[2].groupby(['Punkt'])['Dato'].agg('min').reset_index()
 
-    net_i_land = pd.merge(mean_net_i_land, d_net_i_land, on='Punkt')
-    net_i_lav = pd.merge(mean_net_i_lav, d_net_i_lav, on='Punkt')
-    net_i_høj = pd.merge(mean_net_i_høj, d_net_i_høj, on='Punkt')
+    net_i_x = pd.merge(mean_net_i_x, d_net_i_x, on='Punkt')
+    net_i_y = pd.merge(mean_net_i_y, d_net_i_y, on='Punkt')
+    net_i_z = pd.merge(mean_net_i_z, d_net_i_z, on='Punkt')
     
-    list_of_land_lav_høj = [net_i_land, net_i_lav, net_i_høj]
-    return list_of_land_lav_høj
+    list_of_x_y_z = [net_i_x, net_i_y, net_i_z]
+    return list_of_x_y_z
 
 
 """
@@ -52,9 +53,9 @@ Indlæsning af data i dataframe
 """
 data_dict = {'Satellitter': satellitter, 'Satellitter_gns': satellitter_gns,'Ellipsoidehøjde': ellipsoideh, 
              'Difference': difference, 'Instrument': instrument, 'Net': net, 'Sektor': sektor, 'Punkt': punkt, 
-             'Dato': dato}
+             'Dato': dato, 'PDOP': PDOP}
 df = DataFrame(data_dict,columns=['Satellitter', 'Satellitter_gns', 'Difference', 'Instrument', 'Net', 'Sektor',
-                                  'Punkt', 'Dato'])
+                                  'Punkt', 'Dato', 'PDOP'])
 df.sort_values(by=['Dato'])
 
 
@@ -63,9 +64,10 @@ Opdeling til statistik og plot
 """
 
 # Fjern outliers
-df = df[:][(df.Difference >= -100) & (df.Difference <= 100)]
+df = df[:][(df.Difference >= -47.5) & (df.Difference <= 60.5)]
+df = df[:][(df.PDOP < 3.5)]
 
-# Del for antal satelitter
+# Del for antal satellitter
 lav_sat = df[:][df.Satellitter_gns < 18]
 mellem_sat = df[:][(df.Satellitter_gns >= 18) & (df.Satellitter_gns <= 20)]
 høj_sat = df[:][df.Satellitter_gns > 20]
@@ -124,7 +126,7 @@ for net_df in net_list_S:
     list_S_Sept.append(net_df[:][net_df.Instrument == 'S'])
 
 
-# Del i instrumenter for antal satellitter (u sdfenet)
+# Del i instrumenter for antal satellitter (uden sdfenet)
 k_list_G_Leica = []
 k_list_G_Trim = []
 k_list_G_Sept = []
@@ -148,33 +150,33 @@ for net_df in k_net_list_H:
 Statistik
 """
 
-# Middel for hvert punkt for sektorer
+# Middelværdi af satellitantal for hvert punkt for hver sektorer
 # For net G
-G_Leica = mean_sat(list_G_Leica, 'Satellitter')
-G_Trim = mean_sat(list_G_Trim, 'Satellitter')
-G_Sept = mean_sat(list_G_Sept, 'Satellitter')
+G_Leica = mean_by(list_G_Leica, 'Satellitter')
+G_Trim = mean_by(list_G_Trim, 'Satellitter')
+G_Sept = mean_by(list_G_Sept, 'Satellitter')
 
 # For net H
-H_Leica = mean_sat(list_H_Leica, 'Satellitter')
-H_Trim = mean_sat(list_H_Trim, 'Satellitter')
-H_Sept = mean_sat(list_H_Sept, 'Satellitter')
+H_Leica = mean_by(list_H_Leica, 'Satellitter')
+H_Trim = mean_by(list_H_Trim, 'Satellitter')
+H_Sept = mean_by(list_H_Sept, 'Satellitter')
 
 # For net S
-S_Leica = mean_sat(list_S_Leica, 'Satellitter')
-S_Trim = mean_sat(list_S_Trim, 'Satellitter')
-S_Sept = mean_sat(list_S_Sept, 'Satellitter')
+S_Leica = mean_by(list_S_Leica, 'Satellitter')
+S_Trim = mean_by(list_S_Trim, 'Satellitter')
+S_Sept = mean_by(list_S_Sept, 'Satellitter')
 
 
-# Middel for hvert punkt for antal satellitter
+# Middelværdi af difference for hvert punkt for gruppe af satellitantal
 # For net G
-k_G_Leica = mean_sat(k_list_G_Leica, 'Difference')
-k_G_Trim = mean_sat(k_list_G_Trim, 'Difference')
-k_G_Sept = mean_sat(k_list_G_Sept, 'Difference')
+k_G_Leica = mean_by(k_list_G_Leica, 'Difference')
+k_G_Trim = mean_by(k_list_G_Trim, 'Difference')
+k_G_Sept = mean_by(k_list_G_Sept, 'Difference')
 
 # For net H
-k_H_Leica = mean_sat(k_list_H_Leica, 'Difference')
-k_H_Trim = mean_sat(k_list_H_Trim, 'Difference')
-k_H_Sept = mean_sat(k_list_H_Sept, 'Difference')
+k_H_Leica = mean_by(k_list_H_Leica, 'Difference')
+k_H_Trim = mean_by(k_list_H_Trim, 'Difference')
+k_H_Sept = mean_by(k_list_H_Sept, 'Difference')
 
 
 """
@@ -236,6 +238,7 @@ kp6 = k_G_Sept[0].plot(kind='scatter', x='Dato', y='Difference', color='g', mark
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation=45)
+plt.ylim(-70,70)
 plt.title('RTK-målinger for under 18 satellitter')
 plt.savefig("Figurer/RTK_all_sats18under.png")
 
@@ -250,6 +253,7 @@ kp6 = k_G_Sept[1].plot(kind='scatter', x='Dato', y='Difference', color='g', mark
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation=45)
+plt.ylim(-70,70)
 plt.title('RTK-målinger for mellem 18-20 satellitter')
 plt.savefig("Figurer/RTK_all_sats18-20.png")
 
@@ -264,77 +268,87 @@ kp6 = k_G_Sept[2].plot(kind='scatter', x='Dato', y='Difference', color='g', mark
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation=45)
+plt.ylim(-70,70)
 plt.title('RTK-målinger for over 20 satellitter')
 plt.savefig("Figurer/RTK_all_sats20over.png")
 
 
-# RTK-målinger Leica på GPSnet for under 18 satellitter
-IL1 = k_G_Leica[0].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's')  
+# RTK-målinger Leica på Smartnet for under 18 satellitter
+IL1 = k_H_Leica[0].plot(kind='scatter', x='Dato', y='Difference', color='darkgreen', marker = 'o')  
 plt.subplots_adjust(left=0.25, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
-plt.title('Leica på GPSnet \n RTK-målinger med under 18 satellitter')
-plt.savefig("Figurer/RTK_G_G_sats18under.png")
+plt.ylim(-70,70)
+plt.title('Leica på Smartnet \n RTK-målinger med under 18 satellitter')
+plt.savefig("Figurer_Leica/RTK_H_H_sats18under.png")
 
-# RTK-målinger Leica på GPSnet for 18-20 satellitter
-IL2 = k_G_Leica[1].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's')  
+# RTK-målinger Leica på Smartnet for 18-20 satellitter
+IL2 = k_H_Leica[1].plot(kind='scatter', x='Dato', y='Difference', color='darkgreen', marker = 'o')  
 plt.subplots_adjust(left=0.25, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
-plt.title('Leica på GPSnet \n RTK-målinger med mellem 18-20 satellitter')
-plt.savefig("Figurer/RTK_G_G_sats18-20.png")
+plt.ylim(-70,70)
+plt.title('Leica på Smartnet \n RTK-målinger med mellem 18-20 satellitter')
+plt.savefig("Figurer_Leica/RTK_H_H_sats18-20.png")
 
-# RTK-målinger Leica på GPSnet for over 20 satellitter
-IL3 = k_G_Leica[2].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's')  
+# RTK-målinger Leica på Smartnet for over 20 satellitter
+IL3 = k_H_Leica[2].plot(kind='scatter', x='Dato', y='Difference', color='darkgreen', marker = 'o')  
 plt.subplots_adjust(left=0.25, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
-plt.title('Leica på GPSnet \n RTK-målinger med over 20 satellitter')
-plt.savefig("Figurer/RTK_G_G_sats20over.png")
+plt.ylim(-70,70)
+plt.title('Leica på Smartnet \n RTK-målinger med over 20 satellitter')
+plt.savefig("Figurer_Leica/RTK_H_H_sats20over.png")
 
 
-# RTK-målinger Trimble på Smartnet for under 18 satellitter
-IT1 = k_H_Trim[0].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's')  
+# RTK-målinger Trimble på GPSnet for under 18 satellitter
+IT1 = k_G_Trim[0].plot(kind='scatter', x='Dato', y='Difference', color='firebrick', marker = 'o')  
 plt.subplots_adjust(left=0.25, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
-plt.title('Trimble på Smartnet \n RTK-målinger med under 18 satellitter')
-plt.savefig("Figurer/RTK_H_H_sats18under.png")
+plt.ylim(-70,70)
+plt.title('Trimble på GPSnet \n RTK-målinger med under 18 satellitter')
+plt.savefig("Figurer_Trimble/RTK_G_G_sats18under.png")
 
-# RTK-målinger Trimble på Smartnet for 18-20 satellitter
-IT2 = k_H_Trim[1].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's')  
+# RTK-målinger Trimble på GPSnet for 18-20 satellitter
+IT2 = k_G_Trim[1].plot(kind='scatter', x='Dato', y='Difference', color='firebrick', marker = 'o')  
 plt.subplots_adjust(left=0.25, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
-plt.title('Trimble på Smartnet \n RTK-målinger med mellem 18-20 satellitter')
-plt.savefig("Figurer/RTK_H_H_sats18-20.png")
+plt.ylim(-70,70)
+plt.title('Trimble på GPSnet \n RTK-målinger med mellem 18-20 satellitter')
+plt.savefig("Figurer_Trimble/RTK_G_G_sats18-20.png")
 
-# RTK-målinger Trimble på Smartnet for over 20 satellitter
-IT3 = k_H_Trim[2].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's')  
+# RTK-målinger Trimble på GPSnet for over 20 satellitter
+IT3 = k_G_Trim[2].plot(kind='scatter', x='Dato', y='Difference', color='firebrick', marker = 'o')  
 plt.subplots_adjust(left=0.25, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
-plt.title('Trimble på Smartnet \n RTK-målinger med over 20 satellitter')
-plt.savefig("Figurer/RTK_H_H_sats20over.png")
+plt.ylim(-70,70)
+plt.title('Trimble på GPSnet \n RTK-målinger med over 20 satellitter')
+plt.savefig("Figurer_Trimble/RTK_G_G_sats20over.png")
 
 
 # RTK-målinger Septentrio (på begge net) for under 18 satellitter
-IS1 = k_H_Sept[0].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's', label = 'Septentrio på Smartnet')
-IS11 = k_G_Sept[0].plot(kind='scatter', x='Dato', y='Difference', color='b', marker = 's', ax=IS1, label = 'Septentrio på GPSnet')
+IS1 = k_H_Sept[0].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 'o', label = 'Septentrio på Smartnet')
+IS11 = k_G_Sept[0].plot(kind='scatter', x='Dato', y='Difference', color='b', marker = 'o', ax=IS1, label = 'Septentrio på GPSnet')
 plt.subplots_adjust(left=0.15, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
+plt.ylim(-70,70)
 plt.legend(fontsize='xx-small',loc='best')
 plt.title('Septentrio \n RTK-målinger med under 18 satellitter')
 plt.savefig("Figurer/RTK_S_begge_sats18under.png")
 
 # RTK-målinger Septentrio (på begge net) for 18-20 satellitter
-IS2 = k_H_Sept[1].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's', label = 'Septentrio på Smartnet')
-IS21 = k_G_Sept[1].plot(kind='scatter', x='Dato', y='Difference', color='b', marker = 's', ax=IS2, label = 'Septentrio på GPSnet')
+IS2 = k_H_Sept[1].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 'o', label = 'Septentrio på Smartnet')
+IS21 = k_G_Sept[1].plot(kind='scatter', x='Dato', y='Difference', color='b', marker = 'o', ax=IS2, label = 'Septentrio på GPSnet')
 plt.subplots_adjust(left=0.15, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
+plt.ylim(-70,70)
 plt.legend(fontsize='xx-small',loc='best')
 plt.title('Septentrio \n RTK-målinger med mellem 18-20 satellitter')
 plt.savefig("Figurer/RTK_S_begge_sats18-20.png")
 
 # RTK-målinger Septentrio (på begge net) for over 20 satellitter
-IS3 = k_H_Sept[2].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 's', label = 'Septentrio på Smartnet')
-IS31 = k_G_Sept[2].plot(kind='scatter', x='Dato', y='Difference', color='b', marker = 's', ax=IS3, label = 'Septentrio på GPSnet')
+IS3 = k_H_Sept[2].plot(kind='scatter', x='Dato', y='Difference', color='r', marker = 'o', label = 'Septentrio på Smartnet')
+IS31 = k_G_Sept[2].plot(kind='scatter', x='Dato', y='Difference', color='b', marker = 'o', ax=IS3, label = 'Septentrio på GPSnet')
 plt.subplots_adjust(left=0.15, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation=45)
+plt.ylim(-70,70)
 plt.legend(fontsize='xx-small',loc='best')
 plt.title('Septentrio \n RTK-målinger med over 20 satellitter')
 plt.savefig("Figurer/RTK_S_begge_sats20over.png")
