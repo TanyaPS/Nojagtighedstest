@@ -110,6 +110,8 @@ fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Mål
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
 
+#satellit gennemsnit fra RTK merges til Fast static dataframe 
+fs_df =  fs_df.merge(df[['Punkt','Satellitter_gns']], how='inner', left_on=["Punkt"], right_on=["Punkt"])
 
 """
 Find konstanter til outliers for FS
@@ -402,7 +404,7 @@ par = host.twinx()
 
 # plot the bars (use host. instead of plt.)
 x = np.array(fs_Leica_dd.reset_index().sort_values(by=['Punkt'])['Punkt'])
-y = np.array(fs_Leica_dd.sort_values(by=['Punkt'])['Difference'])
+y = np.array(fs_Leica_dd.sort_values(by=['Punkt'])['til_2.maaling'])
 p1 = host.bar(x, y, color='steelblue', label = 'Forskel ml. 1. og 2. måling')
 
 # plot the scatter plot (use par. instead of plt.)
@@ -447,7 +449,7 @@ par = host.twinx()
 
 # plot the bars (use host. instead of plt.)
 x = np.array(fs_Trimble_dd.reset_index().sort_values(by=['Punkt'])['Punkt'])
-y = np.array(fs_Trimble_dd.sort_values(by=['Punkt'])['Difference'])
+y = np.array(fs_Trimble_dd.sort_values(by=['Punkt'])['til_2.maaling'])
 p1 = host.bar(x, y, color='steelblue', label = 'Forskel ml. 1. og 2. måling')
 
 # plot the scatter plot (use par. instead of plt.)
@@ -554,7 +556,7 @@ plt.ylabel("Difference [mm]")
 plt.title('Trimble')
 plt.savefig("Figurer_Trimble/FS_RTK_G_all.png")
 
-plt.close('all')
+#plt.close('all')
 
 
 # RTK Leica på smartnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne 
@@ -748,4 +750,4 @@ plt.title('Septentrio på GPSnet \n \n Spredning på 1. og 2. måling samt diffe
 #manager.resize(*manager.window.maxsize())
 plt.savefig("Figurer/RTK_std_diff_S_G.png")
 
-#plt.show()
+plt.show()
