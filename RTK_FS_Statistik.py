@@ -1,3 +1,4 @@
+#%%
 """
 Beregning og plot af diverse data og statistiske værdier for RTK- og FS-målingen i GNSS-nøjagtighedsundersøgelse
 
@@ -51,7 +52,7 @@ for i, m in enumerate(meas_num):
     if not m in ['', ' ']:
         meas_num[i] = int(m)
 
-
+#%%
 """
 Funktioner benyttet
 """
@@ -91,10 +92,11 @@ def diff_diff(first,second):
     return first
 
 
-
+#%%
 """
 Indlæsning af data i dataframe
 """
+
 # RTK
 data_dict = {'Punkt': punkt, 'Dato': dato,'Ellipsoidehøjde': ellipsoidehøjde,'Ellipsoidehøjdekvalitet': ellipsoidehøjdekvalitet,
              'Måling nr.': meas_num, 'Instrument': instrument, 'Net': net, 'Sektor': sektor, 'Satellitter': satellitter, 
@@ -107,10 +109,13 @@ fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Må
                 'Difference': fs_difference}
 fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference'])
 
+#TODO: merge fs med df, så også satelitter_gns kommer på i fs_df... Så kan vi splitte fs_df op i satsantal også...
+#fs_df = pd.merge(fs_df, df[['Punkt', 'Satellitter_gns']], how='left', on='Punkt')
+
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
 
-
+#%%
 """
 Find konstanter til outliers for FS
 """
@@ -148,7 +153,7 @@ print('Interne grænser for alle FS på S: Fra ' + str(nedreS) + ' til ' + str(o
 print('Interne grænser for alle FS på H: Fra ' + str(nedreH) + ' til ' + str(oevreH))
 print('Interne grænser for alle FS på G: Fra ' + str(nedreG) + ' til ' + str(oevreG))
 
-
+#%%
 """
 Opdeling til statistik og plot
 """
@@ -156,7 +161,7 @@ Opdeling til statistik og plot
 df = df[:][(df.Difference >= -47.5) & (df.Difference <= 60.5)]
 df = df[:][(df.PDOP < 3.5)]
 fs_df = fs_df[:][(fs_df.Difference > -39.9 ) & (fs_df.Difference < 50.0)]
-
+#%%
 """
 Opdel fast static
 """
@@ -186,6 +191,7 @@ fs_h_std_Leica = fs_Leica.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].
 fs_h_std_Trimble =  fs_Trimble.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].agg('std').reset_index()
 fs_h_std_Sept =  fs_Sept.groupby(['Punkt', 'Måling nr.'])['Ellipsoidehøjde'].agg('std').reset_index()
 
+#%%
 """
 Opdel RTK
 """
@@ -247,7 +253,7 @@ second_smart_Sept_h_std= smart_Sept_h_std[:][smart_Sept_h_std['Måling nr.'] == 
 first_GPS_Sept_h_std= GPS_Sept_h_std[:][GPS_Sept_h_std['Måling nr.'] == 1]
 second_GPS_Sept_h_std= GPS_Sept_h_std[:][GPS_Sept_h_std['Måling nr.'] == 2]
 
-
+#%%
 """
 Statistik
 """
@@ -288,12 +294,12 @@ GPS_Trimble_dd = diff_diff(first_GPS_Trimble, second_GPS_Trimble)
 smart_Sept_dd = diff_diff(first_smart_Sept, second_smart_Sept)
 GPS_Sept_dd = diff_diff(first_GPS_Sept, second_GPS_Sept)
 
-
+#%%
 """
 Statistik skrevet til fil
 """
 with open("stats.txt", "w") as output:
-    output.write("Middelværdi og spredning for samtlige FS-beregninger (6 stk) og RTK-målinger (36 stk) for hvert instrument \n")
+    output.write("Middelværdi og spredning for samtlige FS-beregninger (6 stk) \n og RTK-målinger (36 stk) for hvert instrument \n")
     
     output.write('****************************************************\n')
     output.write('Mean og std\n')
@@ -310,14 +316,63 @@ with open("stats.txt", "w") as output:
     output.write('----------------------------------------------------\n')
     output.write('Septentrio på Smartnet. Gnst: ' + str(round(mean_smart_Sept,2)) + ' std: ' + str(round(std_smart_Sept,2)) + '\n')
     output.write('Septentrio på GPSnet. Gnst: ' + str(round(mean_GPS_Sept,2)) + ' std: ' + str(round(std_GPS_Sept,2)) + '\n')
-    output.write('Septentrio fast static. Gnst: ' + str(round(fs_mean_Sept,2)) + ' std: ' + str(round(fs_std_Sept,2)) + '\n')
+    output.write('Septentrio fast static. Gnst: ' + str(round(fs_mean_Sept,2)) + ' std: ' + str(round(fs_std_Sept,2)) + '\n\n')
+    
+    output.write('****************************************************\n')
+    output.write("Middelværdi og spredning for punkter under 18 satelitter \n")
+    output.write('****************************************************\n\n')
+    output.write('Leica på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Leica[:][smart_Leica.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Leica[:][smart_Leica.Satellitter_gns < 18].Difference),2)) + '\n')
+    output.write('Leica på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Leica[:][GPS_Leica.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Leica[:][GPS_Leica.Satellitter_gns < 18].Difference),2)) + '\n')
+    #output.write('Leica fast static. Gnst: ' + str(round(statistics.mean(fs_Leica[:][fs_Leica.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Leica[:][fs_Leica.Satellitter_gns < 18].Difference),2)) + '\n\n')
 
+    output.write('----------------------------------------------------\n')
+    output.write('Trimble på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Trimble[:][smart_Trimble.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Trimble[:][smart_Trimble.Satellitter_gns < 18].Difference),2)) + '\n')
+    output.write('Trimble på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Trimble[:][GPS_Trimble.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Trimble[:][GPS_Trimble.Satellitter_gns < 18].Difference),2)) + '\n')
+    #output.write('Trimble fast static. Gnst: ' + str(round(statistics.mean(fs_Trimble[:][fs_Trimble.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Trimble[:][fs_Trimble.Satellitter_gns < 18].Difference),2)) + '\n\n')
+    
+    output.write('----------------------------------------------------\n')
+    output.write('Septentrio på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Sept[:][smart_Sept.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Sept[:][smart_Sept.Satellitter_gns < 18].Difference),2)) + '\n')
+    output.write('Septentrio på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Sept[:][GPS_Sept.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Sept[:][GPS_Sept.Satellitter_gns < 18].Difference),2)) + '\n\n')
+    #output.write('Septentrio fast static. Gnst: ' + str(round(statistics.mean(fs_Sept[:][fs_Sept.Satellitter_gns < 18].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Sept[:][fs_Sept.Satellitter_gns < 18].Difference),2)) + '\n\n')
+    
+    output.write('****************************************************\n')
+    output.write("Middelværdi og spredning for punkter ml. 18 og 20 satelitter \n")
+    output.write('****************************************************\n\n')
+    output.write('Leica på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Leica[:][(smart_Leica.Satellitter_gns >= 18) & (smart_Leica.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Leica[:][(smart_Leica.Satellitter_gns >= 18) & (smart_Leica.Satellitter_gns <= 20)].Difference),2)) + '\n')
+    output.write('Leica på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Leica[:][(GPS_Leica.Satellitter_gns >= 18) & (GPS_Leica.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Leica[:][(GPS_Leica.Satellitter_gns >= 18) & (GPS_Leica.Satellitter_gns <= 20)].Difference),2)) + '\n')
+    #output.write('Leica fast static. Gnst: ' + str(round(statistics.mean(fs_Leica[:][(fs_Leica.Satellitter_gns >= 18) & (fs_Leica.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Leica[:][(fs_Leica.Satellitter_gns >= 18) & (fs_Leica.Satellitter_gns <= 20)].Difference),2)) + '\n\n')
 
+    output.write('----------------------------------------------------\n')
+    output.write('Trimble på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Trimble[:][(smart_Trimble.Satellitter_gns >= 18) & (smart_Trimble.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Trimble[:][(smart_Trimble.Satellitter_gns >= 18) & (smart_Trimble.Satellitter_gns <= 20)].Difference),2)) + '\n')
+    output.write('Trimble på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Trimble[:][(GPS_Trimble.Satellitter_gns >= 18) & (GPS_Trimble.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Trimble[:][(GPS_Trimble.Satellitter_gns >= 18) & (GPS_Trimble.Satellitter_gns <= 20)].Difference),2)) + '\n')
+    #output.write('Trimble fast static. Gnst: ' + str(round(statistics.mean(fs_Trimble[:][(fs_Trimble.Satellitter_gns >= 18) & (fs_Trimble.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Trimble[:][(fs_Trimble.Satellitter_gns >= 18) & (fs_Trimble.Satellitter_gns <= 20)].Difference),2)) + '\n\n')
+    
+    output.write('----------------------------------------------------\n')
+    output.write('Septentrio på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Sept[:][(smart_Sept.Satellitter_gns >= 18) & (smart_Sept.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Sept[:][(smart_Sept.Satellitter_gns >= 18) & (smart_Sept.Satellitter_gns <= 20)].Difference),2)) + '\n')
+    output.write('Septentrio på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Sept[:][(GPS_Sept.Satellitter_gns >= 18) & (GPS_Sept.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Sept[:][(GPS_Sept.Satellitter_gns >= 18) & (GPS_Sept.Satellitter_gns <= 20)].Difference),2)) + '\n\n')
+    #output.write('Septentrio fast static. Gnst: ' + str(round(statistics.mean(fs_Sept[:][(fs_Sept.Satellitter_gns >= 18) & (fs_Sept.Satellitter_gns <= 20)].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Sept[:][(fs_Sept.Satellitter_gns >= 18) & (fs_Sept.Satellitter_gns <= 20)].Difference),2)) + '\n\n')
+    
+    output.write('****************************************************\n')
+    output.write("Middelværdi og spredning for punkter over 20 satelitter \n")
+    output.write('****************************************************\n\n')
+    output.write('Leica på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Leica[:][smart_Leica.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Leica[:][smart_Leica.Satellitter_gns > 20].Difference),2)) + '\n')
+    output.write('Leica på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Leica[:][GPS_Leica.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Leica[:][GPS_Leica.Satellitter_gns > 20].Difference),2)) + '\n')
+    #output.write('Leica fast static. Gnst: ' + str(round(statistics.mean(fs_Leica[:][fs_Leica.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Leica[:][fs_Leica.Satellitter_gns > 20].Difference),2)) + '\n\n')
 
+    output.write('----------------------------------------------------\n')
+    output.write('Trimble på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Trimble[:][smart_Trimble.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Trimble[:][smart_Trimble.Satellitter_gns > 20].Difference),2)) + '\n')
+    output.write('Trimble på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Trimble[:][GPS_Trimble.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Trimble[:][GPS_Trimble.Satellitter_gns > 20].Difference),2)) + '\n')
+    #output.write('Trimble fast static. Gnst: ' + str(round(statistics.mean(fs_Trimble[:][fs_Trimble.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Trimble[:][fs_Trimble.Satellitter_gns > 20].Difference),2)) + '\n\n')
+    
+    output.write('----------------------------------------------------\n')
+    output.write('Septentrio på Smartnet. Gnst: ' + str(round(statistics.mean(smart_Sept[:][smart_Sept.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(smart_Sept[:][smart_Sept.Satellitter_gns > 20].Difference),2)) + '\n')
+    output.write('Septentrio på GPSnet. Gnst: ' + str(round(statistics.mean(GPS_Sept[:][GPS_Sept.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(GPS_Sept[:][GPS_Sept.Satellitter_gns > 20].Difference),2)) + '\n')
+    #output.write('Septentrio fast static. Gnst: ' + str(round(statistics.mean(fs_Sept[:][fs_Sept.Satellitter_gns > 20].Difference),2)) + ' std: ' + str(round(statistics.stdev(fs_Sept[:][fs_Sept.Satellitter_gns > 20].Difference),2)) + '\n\n')
+
+#%%
 """
 PLOTS
 """
-
 
 # Histogrammer
 fs_Leica.hist(column= 'Difference', bins =50)
@@ -360,7 +415,8 @@ plt.title('Fast Static Septentrio \n Difference mellem 1. og 2. måling', fontsi
 plt.savefig("Figurer/FS_Histogram_Forskel_S_all.png")
 
 plt.close('all')
-# Vi ændrer lige figurstørrelsen:
+#%%
+# # Vi ændrer lige figurstørrelsen:
 # get current size
 fig_size = plt.rcParams["figure.figsize"]
 #print ("Current size:", fig_size)
@@ -402,7 +458,7 @@ par = host.twinx()
 
 # plot the bars (use host. instead of plt.)
 x = np.array(fs_Leica_dd.reset_index().sort_values(by=['Punkt'])['Punkt'])
-y = np.array(fs_Leica_dd.sort_values(by=['Punkt'])['Difference'])
+y = np.array(fs_Leica_dd.sort_values(by=['Punkt'])['til_2.maaling'])
 p1 = host.bar(x, y, color='steelblue', label = 'Forskel ml. 1. og 2. måling')
 
 # plot the scatter plot (use par. instead of plt.)
@@ -422,8 +478,6 @@ host.set_ylabel("Forskel ml. 1. og 2. måling [mm]")
 par.set_ylabel("Difference [mm]")
 plt.title('FS Leica \n \n Difference på 1. og 2. måling samt forskel mellem 1. og 2. måling', fontsize=10)
 plt.savefig("Figurer_Leica/FS_RTK_diff_diff_H_H.png")
-
-
 
 
 # FS-data for Trimble
@@ -447,7 +501,7 @@ par = host.twinx()
 
 # plot the bars (use host. instead of plt.)
 x = np.array(fs_Trimble_dd.reset_index().sort_values(by=['Punkt'])['Punkt'])
-y = np.array(fs_Trimble_dd.sort_values(by=['Punkt'])['Difference'])
+y = np.array(fs_Trimble_dd.sort_values(by=['Punkt'])['til_2.maaling'])
 p1 = host.bar(x, y, color='steelblue', label = 'Forskel ml. 1. og 2. måling')
 
 # plot the scatter plot (use par. instead of plt.)
@@ -469,7 +523,7 @@ plt.title('FS Trimble \n \n Difference på 1. og 2. måling samt forskel mellem 
 plt.savefig("Figurer_Trimble/FS_RTK_diff_diff_G_G.png")
 
 
-
+#%%
 # RTK og FS plottet sammen for Leica
 gr1 = fs_first_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='r', marker = '.', label = 'Fast static: 1. måling')
 gr2 = fs_second_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='r', marker = 'x',  ax=gr1, label = 'Fast static: 2. måling')    
@@ -525,7 +579,7 @@ plt.title('Septentrio')
 #manager.resize(*manager.window.maxsize())
 plt.savefig("Figurer/FS_RTK_S_all.png")
 
-
+#%%
 # RTK og FS plottet sammen for Leica - men uden data fra GPSnet
 gr1 = fs_first_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='b', marker = '.', label = 'Fast static: 1. måling')
 gr2 = fs_second_Leica.plot(kind='scatter', x='Punkt', y='Difference', color='b', marker = 'x',  ax=gr1, label = 'Fast static: 2. måling')    
@@ -556,7 +610,7 @@ plt.savefig("Figurer_Trimble/FS_RTK_G_all.png")
 
 plt.close('all')
 
-
+#%%
 # RTK Leica på smartnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne 
 # generate the twin axes
 plt.figure(11)
