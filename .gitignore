@@ -204,6 +204,8 @@ $RECYCLE.BIN/
 *.xlsx
 *.txt
 Figurer/
+Figurer_Leica/
+Figurer_Trimble/
 FS_Anna/
 FS_Niklas/
 FS_Rene/
