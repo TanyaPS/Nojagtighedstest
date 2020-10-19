@@ -1,4 +1,5 @@
-# Python script til håndtering af RTK filer.
+#%%
+# # Python script til håndtering af RTK filer.
 # konverterer til én excel (GNSS_RTK.xlsx) fil med kolonnerne:
 # "Punkt ID","North","East","Ellipsoide højde", "Beregnet ellipsoide højde","Dato","Tid","Antenne højde",
 # "Sektor","Net","Instrument type (bogstav)","Måling nr","udflytning","kote","Beregnet kote","Sats",
@@ -15,16 +16,16 @@ maaler = ["ND", "AP", "Rene"]
 # undermapper
 path = ["RTK_Niklas/", "RTK_Anna/", "RTK_Rene/"]
 
-#pkt_path = "Punktudvalg.xlsx"
-pkt_path = "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/QGIS/Punktudvalg.xlsx"
+pkt_path = "Punktudvalg.xlsx"
+#pkt_path = "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/QGIS/Punktudvalg.xlsx"
 
 # nivellement
-#niv_paths = ["Anna/GNSS_niv_AP", "Niklas/GNSS_niv_ND", "Rene/GNSS_niv_Rene"]
-niv_paths = [
-    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Anna/GNSS_niv_AP",
-    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Niklas/GNSS_niv_ND",
-    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Rene/GNSS_niv_Rene"
-]
+niv_paths = ["Anna/GNSS_niv_AP", "Niklas/GNSS_niv_ND", "Rene/GNSS_niv_Rene"]
+#niv_paths = [
+#    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Anna/GNSS_niv_AP",
+#    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Niklas/GNSS_niv_ND",
+#    "/GRF/Medarbejdere/majws/MP4.7_2020/Nøjagtighedstest/DATA/Nivellement/Rene/GNSS_niv_Rene"
+#]
 udflytning = []
 for niv_path in niv_paths:
     niv_file = open(niv_path, "r")
@@ -37,7 +38,7 @@ for niv_path in niv_paths:
     niv_file.close
 
 udflytning_names = [r[0] for r in udflytning]
-
+#%%
 
 # load reference excel ark
 sheet1 = pyexcel.get_sheet(
@@ -57,6 +58,7 @@ sheet3 = pyexcel.get_sheet(
 for it, name in enumerate(sheet3.column["Landsnr"]):
     sheet3[it, "Landsnr"] = re.sub("[^A-Za-z0-9]+", "", sheet3[it, "Landsnr"])
 
+#%%
 frames = []
 extra = [None]
 for j, name in enumerate(maaler):
@@ -142,13 +144,15 @@ for j, name in enumerate(maaler):
                     21,
                     22,
                     20,
+                    20,
+                    20
                 ],
             ]
         )
     except Exception as e:
         print("could not process: " + path[j] + sept_filename)
         print(e)
-
+#%%
     # Leica data
     leica_data = []
     try:
@@ -239,13 +243,15 @@ for j, name in enumerate(maaler):
                     21,
                     22,
                     18,
+                    18,
+                    18
                 ],
             ]
         )
     except Exception as e:
         print(f"Could not process: {path[j]}{leica_filename}")
         print(e)
-
+#%%
     # Trimble data
     trimble_data = []
     try:
@@ -336,6 +342,8 @@ for j, name in enumerate(maaler):
                     30,
                     31,
                     29,
+                    29,
+                    29
                 ],
             ]
         )
@@ -347,7 +355,7 @@ for j, name in enumerate(maaler):
 
     frames.extend([sept_dataFM, leica_dataFM, trimble_dataFM])
 
-
+#%%
 # sammensæt DataFrames, giv kolonne navne og skriv excel fil
 result = pd.concat(frames, ignore_index=True)
 result.columns = [
@@ -388,6 +396,8 @@ result.columns = [
     "Instrument",
     "Måler",
     "Bemærkning",
+    "Afstand til GPSnet",
+    "Afstand til Smartnet"
 ]
 for ind in result.index:
     punkt_name = re.sub("[^A-Za-z0-9]+", "", result["Punktnavn"][ind])
@@ -398,8 +408,9 @@ for ind in result.index:
         result["DB Ellipsoidehøjde"][ind] = sheet1[index, "Ellipsoidehøjde"]
         result["DB kote"][ind] = sheet1[index, "Kote"]
         result["Ellipsoidehøjdekvalitet"][ind] = sheet1[
-            index, "Ellipsoidehøjdekvalitet"
-        ]
+            index, "Ellipsoidehøjdekvalitet"]
+        result["Afstand til GPSnet"][ind] = sheet1[index, "Afstand_GPSnet"]
+        result["Afstand til Smartnet"][ind] = sheet1[index, "Afstand_Smartnet"]
     elif punkt_name in sheet2.column["Ident"]:
         index = sheet2.column["Ident"].index(punkt_name)
         # print(sheet2[index,"Sektor"])
@@ -407,16 +418,18 @@ for ind in result.index:
         result["DB Ellipsoidehøjde"][ind] = sheet2[index, "Ellipsoidehøjde"]
         result["DB kote"][ind] = sheet2[index, "Kote"]
         result["Ellipsoidehøjdekvalitet"][ind] = sheet2[
-            index, "Ellipsoidehøjdekvalitet"
-        ]
+            index, "Ellipsoidehøjdekvalitet"]
+        result["Afstand til GPSnet"][ind] = sheet2[index, "Afstand_GPSnet"]
+        result["Afstand til Smartnet"][ind] = sheet2[index, "Afstand_Smartnet"]
     elif punkt_name in sheet2.column["Landsnummer"]:
         index = sheet2.column["Landsnummer"].index(punkt_name)
         result["Sektor"][ind] = sheet2[index, "Sektor"]
         result["DB Ellipsoidehøjde"][ind] = sheet2[index, "Ellipsoidehøjde"]
         result["DB kote"][ind] = sheet2[index, "Kote"]
         result["Ellipsoidehøjdekvalitet"][ind] = sheet2[
-            index, "Ellipsoidehøjdekvalitet"
-        ]
+            index, "Ellipsoidehøjdekvalitet"]
+        result["Afstand til GPSnet"][ind] = sheet2[index, "Afstand_GPSnet"]
+        result["Afstand til Smartnet"][ind] = sheet2[index, "Afstand_Smartnet"]
     elif punkt_name in sheet3.column["Landsnr"]:
         index = sheet3.column["Landsnr"].index(punkt_name)
         # print(sheet3[index,"Sektor"])
@@ -424,8 +437,10 @@ for ind in result.index:
         result["DB Ellipsoidehøjde"][ind] = sheet3[index, "Ellipsoidehøjde"]
         result["DB kote"][ind] = sheet3[index, "Kote"]
         result["Ellipsoidehøjdekvalitet"][ind] = sheet3[
-            index, "Ellipsoidehøjdekvalitet"
-        ]
+            index, "Ellipsoidehøjdekvalitet"]
+        result["Afstand til GPSnet"][ind] = sheet3[index, "Afstand_GPSnet"]
+        result["Afstand til Smartnet"][ind] = sheet3[index, "Afstand_Smartnet"]
+
 
 # udskift punktum med komma
 for column in result[
@@ -452,7 +467,7 @@ for column in result[
         "MaxV Prec",
         "MinV Prec",
         "Max PDOP",
-        "Min DPOP",
+        "Min DPOP"
     ]
 ]:
     for i, number in enumerate(result[column]):
