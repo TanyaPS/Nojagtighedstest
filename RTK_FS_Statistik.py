@@ -36,6 +36,7 @@ satellitter_gns = data.column[10]
 difference = data.column[11]
 PDOP = data.column[12]
 dist_net = data.column[13]
+noj = data.column[14]
 
 # Fast static
 fs_punkt = fs_data.column[1]
@@ -45,7 +46,7 @@ fs_instrument = fs_data.column[3]
 fs_maaling = fs_data.column[2]
 fs_dist_net1 = fs_data.column[6]
 fs_dist_net2 = fs_data.column[7]
-
+fs_noj = fs_data.column[8]
 
 
 # Spring tomme felter over
@@ -111,14 +112,14 @@ Indlæsning af data i dataframe
 # RTK
 data_dict = {'Punkt': punkt, 'Dato': dato,'Ellipsoidehøjde': ellipsoidehøjde,'Ellipsoidehøjdekvalitet': ellipsoidehøjdekvalitet,
              'Måling nr.': meas_num, 'Instrument': instrument, 'Net': net, 'Sektor': sektor, 'Satellitter': satellitter, 
-             'Satellitter_gns': satellitter_gns, 'Difference': difference, 'PDOP': PDOP, 'Afstand til reference station': dist_net}
+             'Satellitter_gns': satellitter_gns, 'Difference': difference, 'PDOP': PDOP, 'Afstand til reference station': dist_net, 'forventet nøjagtighed': noj}
 df = pd.DataFrame(data_dict, columns = ['Punkt','Dato','Ellipsoidehøjde','Ellipsoidehøjdekvalitet','Måling nr.','Instrument',
-                                        'Net','Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP', 'Afstand til reference station'])
+                                        'Net','Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP', 'Afstand til reference station', 'forventet nøjagtighed'])
 
 # Fast static
 fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Måling nr.': fs_maaling, 'Instrument': fs_instrument, 
-                'Difference': fs_difference, 'Afstand til GPSnet': fs_dist_net1, 'Afstand til smartnet': fs_dist_net2}
-fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand til GPSnet', 'Afstand til Smartnet'])
+                'Difference': fs_difference, 'Afstand til GPSnet': fs_dist_net1, 'Afstand til smartnet': fs_dist_net2, 'forventet nøjagtighed': fs_noj}
+fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand til GPSnet', 'Afstand til Smartnet', 'forventet nøjagtighed'])
 
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
@@ -304,6 +305,24 @@ smart_Trimble_dd = diff_diff(first_smart_Trimble, second_smart_Trimble)
 GPS_Trimble_dd = diff_diff(first_GPS_Trimble, second_GPS_Trimble)
 smart_Sept_dd = diff_diff(first_smart_Sept, second_smart_Sept)
 GPS_Sept_dd = diff_diff(first_GPS_Sept, second_GPS_Sept)
+"""
+Mean difference for hvert punkt delt i net minus forventet nøjagtighed
+"""
+mean_GPS_df = GPS_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+usik_df = GPS_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
+mean_usik_GPS = mean_GPS_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_GPS['Rettet mean difference'] = mean_usik_GPS['Difference'] - mean_usik_GPS['forventet nøjagtighed']
+
+mean_smart_df = smart_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+usik_df = smart_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
+mean_usik_smart = mean_smart_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_smart['Rettet mean difference'] = mean_usik_smart['Difference'] - mean_usik_smart['forventet nøjagtighed']
+
+
+mean_fs_df = fs_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+usik_df = fs_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
+mean_usik_fs = mean_fs_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_fs['Rettet mean difference'] = mean_usik_fs['Difference'] - mean_usik_fs['forventet nøjagtighed']
 
 """
 mean difference af alle målinger for hvert punkt (uden outliers) med konfidensinterval
@@ -872,5 +891,35 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.title('Fast Static nøjagtighed med konfidensinterval')
 plt.savefig("Figurer/FS_conf_all.png")
+
+#Plot rettet mean difference GPSnet
+plt.figure(19)
+mean_usik_GPS.plot(kind='scatter', x='Punkt', y='Rettet mean difference', color='b', marker = '.')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('GPSnet. Mean difference minus forventet nøjagtighed')
+
+#Plot rettet mean difference smartnet
+plt.figure(20)
+mean_usik_smart.plot(kind='scatter', x='Punkt', y='Rettet mean difference', color='b', marker = '.')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('Smartnet. Mean difference minus forventet nøjagtighed')
+
+#Plot rettet mean difference fast static
+plt.figure(21)
+mean_usik_fs.plot(kind='scatter', x='Punkt', y='Rettet mean difference', color='b', marker = '.')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
+plt.xticks(rotation='vertical')
+plt.ylim(-100,100)
+plt.ylabel("Difference [mm]")
+plt.title('Fast static. Mean difference minus forventet nøjagtighed')
 
 plt.show()

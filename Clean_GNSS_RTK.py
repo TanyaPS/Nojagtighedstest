@@ -45,6 +45,7 @@ sekt = []
 difference = []
 p_dop = []
 dist_net = []
+usikkerhed = []
 
 # Her ensrettes datostempling og parametre for de forskellige instrumenter
 for i, sat in enumerate(sats):
@@ -86,8 +87,10 @@ for i, sat in enumerate(sats):
 
     if net[i] == 'H':
         dist_net.append(dist_smart[i])
+        usikkerhed.append(15+0.5*1000*1000*dist_smart[i]/1000000)
     elif net[i] == 'G':
         dist_net.append(dist_GPSnet[i])
+        usikkerhed.append(15+0.5*1000*1000*dist_GPSnet[i]/1000000)
 
     date[i] = date[i] + ' ' + tid[i]
     dato.append(datetime.strptime(date[i], '%d-%m-%Y %H:%M:%S'))
@@ -109,10 +112,10 @@ Indlæsning af data i dataframe
 """
 
 data_dict = {'Punkt': punkter, 'Dato': dato, 'Ellipsoidehøjde': e_h,'Ellipsoidehøjdekvalitet': kvalitet, 'Måling nr.': meas_number,
-             'Instrument': instr, 'Net': netv, 'Sektor': sekt, 'Satellitter': satellitter, 'Difference i mm': difference, 'PDOP': p_dop, 'Afstand til reference station': dist_net}
+             'Instrument': instr, 'Net': netv, 'Sektor': sekt, 'Satellitter': satellitter, 'Difference i mm': difference, 'PDOP': p_dop, 'Afstand til reference station': dist_net, 'forventet nøjagtighed': usikkerhed}
 # Dataframe for alt data
 df = DataFrame(data_dict,columns=['Punkt', 'Dato', 'Ellipsoidehøjde', 'Ellipsoidehøjdekvalitet', 'Måling nr.', 'Instrument', 'Net', 
-                                  'Sektor', 'Satellitter', 'Difference i mm', 'PDOP', 'Afstand til reference station'])
+                                  'Sektor', 'Satellitter', 'Difference i mm', 'PDOP', 'Afstand til reference station', 'forventet nøjagtighed'])
 # Dataframes for hvert instrument på eget net
 df_HH = df[:][(df.Instrument == 'H') & (df.Net == 'H')] 
 df_GG = df[:][(df.Instrument == 'G') & (df.Net == 'G')]
