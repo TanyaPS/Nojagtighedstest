@@ -35,6 +35,7 @@ satellitter = data.column[9]
 satellitter_gns = data.column[10]
 difference = data.column[11]
 PDOP = data.column[12]
+dist_net = data.column[13]
 
 # Fast static
 fs_punkt = fs_data.column[1]
@@ -42,6 +43,9 @@ fs_ellipsoidehøjde = fs_data.column[4]
 fs_difference = fs_data.column[5]
 fs_instrument = fs_data.column[3]
 fs_maaling = fs_data.column[2]
+fs_dist_net1 = fs_data.column[6]
+fs_dist_net2 = fs_data.column[7]
+
 
 
 # Spring tomme felter over
@@ -107,14 +111,14 @@ Indlæsning af data i dataframe
 # RTK
 data_dict = {'Punkt': punkt, 'Dato': dato,'Ellipsoidehøjde': ellipsoidehøjde,'Ellipsoidehøjdekvalitet': ellipsoidehøjdekvalitet,
              'Måling nr.': meas_num, 'Instrument': instrument, 'Net': net, 'Sektor': sektor, 'Satellitter': satellitter, 
-             'Satellitter_gns': satellitter_gns, 'Difference': difference, 'PDOP': PDOP}
+             'Satellitter_gns': satellitter_gns, 'Difference': difference, 'PDOP': PDOP, 'Afstand til reference station': dist_net}
 df = pd.DataFrame(data_dict, columns = ['Punkt','Dato','Ellipsoidehøjde','Ellipsoidehøjdekvalitet','Måling nr.','Instrument',
-                                        'Net','Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP'])
+                                        'Net','Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP', 'Afstand til reference station'])
 
 # Fast static
 fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Måling nr.': fs_maaling, 'Instrument': fs_instrument, 
-                'Difference': fs_difference}
-fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference'])
+                'Difference': fs_difference, 'Afstand til GPSnet': fs_dist_net1, 'Afstand til smartnet': fs_dist_net2}
+fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand til GPSnet', 'Afstand til Smartnet'])
 
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
@@ -307,17 +311,21 @@ mean difference af alle målinger for hvert punkt (uden outliers) med konfidensi
 RTK_mean = []
 RTK_ned = []
 RTK_op = []
+RTK_dist = []
 unikke_pkter = np.unique(df.Punkt)
 unikke_pkter.sort()
 for pkt in unikke_pkter:
     pkt_df = df[:][df.Punkt == pkt]
+    RTK_dist.append(pkt_df['Afstand til reference station'].mean())
     pkt_m_c = mean_confidence_interval(pkt_df.Difference)
     RTK_mean.append(pkt_m_c[0])
     RTK_ned.append(pkt_m_c[0]-pkt_m_c[1])
     RTK_op.append(pkt_m_c[2]-pkt_m_c[0])
 
-konfidens_dict = {'Punkt': unikke_pkter, 'Middel difference': RTK_mean, 'Nedre grænse': RTK_ned, 'Øvre grænse': RTK_op}
-konfidens_df = pd.DataFrame(konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse'])
+konfidens_dict = {'Punkt': unikke_pkter, 'Middel difference': RTK_mean, 'Nedre grænse': RTK_ned, 'Øvre grænse': RTK_op, 'Afstand til net': RTK_dist}
+konfidens_df = pd.DataFrame(konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse', 'Afstand til net'])
+#konfidens_df.sort_values(by=['Afstand til net'])
+
 
 fs_mean = []
 fs_ned = []
@@ -325,11 +333,11 @@ fs_op = []
 fs_unikke_pkter = np.unique(fs_df.Punkt)
 fs_unikke_pkter.sort()
 for pkt in fs_unikke_pkter:
-    fs_pkt = df[:][df.Punkt == pkt]
-    pkt_m_c = mean_confidence_interval(fs_pkt.Difference)
-    fs_mean.append(pkt_m_c[0])
-    fs_ned.append(pkt_m_c[0]-pkt_m_c[1])
-    fs_op.append(pkt_m_c[2]-pkt_m_c[0])
+    fs_pkt = fs_df[:][fs_df.Punkt == pkt]
+    fs_pkt_m_c = mean_confidence_interval(fs_pkt.Difference)
+    fs_mean.append(fs_pkt_m_c[0])
+    fs_ned.append(fs_pkt_m_c[0]-fs_pkt_m_c[1])
+    fs_op.append(fs_pkt_m_c[2]-fs_pkt_m_c[0])
 
 fs_konfidens_dict = {'Punkt': fs_unikke_pkter, 'Middel difference': fs_mean, 'Nedre grænse': fs_ned, 'Øvre grænse': fs_op}
 fs_konfidens_df = pd.DataFrame(fs_konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse'])
