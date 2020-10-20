@@ -115,12 +115,12 @@ for i, p in enumerate(punkt):
             meas.append(maaling[i])
             dist1.append(afstand1[i])
             dist2.append(afstand2[i])
-            usikkerhed.append(15+1000*1000*afstand1[i]/1000000)
+            usikkerhed.append(5+0.5*afstand1[i])
 
 
-data_dict = {'Punkt': pkt, 'Måling nr.': meas, 'Instrument': instr, 'Ellipsoideh': elip_m, 
-             'Difference': diff, 'Afstand1': dist1, 'Afstand2': dist2, 'Forventet nøjagtighed': usikkerhed}
-df = DataFrame(data_dict,columns=['Punkt', 'Måling nr.', 'Instrument', 'Ellipsoideh', 
-                                  'Difference', 'Afstand1', 'Afstand2', 'Forventet nøjagtighed'])
+data_dict = {'Punkt': pkt, 'Måling nr.': meas, 'Instrument': instr, 'Ellipsoideh [m]': elip_m, 
+             'Difference [mm]': diff, 'Afstand1 [km]': dist1, 'Afstand2 [km]': dist2, 'Forventet nøjagtighed [mm]': usikkerhed}
+df = DataFrame(data_dict,columns=['Punkt', 'Måling nr.', 'Instrument', 'Ellipsoideh [m]', 
+                                  'Difference [mm]', 'Afstand1 [km]', 'Afstand2 [km]', 'Forventet nøjagtighed [mm]'])
 
 df.to_excel('Cleaned_GNSS_FS.xlsx')
