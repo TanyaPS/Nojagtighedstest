@@ -118,8 +118,8 @@ df = pd.DataFrame(data_dict, columns = ['Punkt','Dato','Ellipsoidehøjde','Ellip
 
 # Fast static
 fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Måling nr.': fs_maaling, 'Instrument': fs_instrument, 
-                'Difference': fs_difference, 'Afstand til GPSnet': fs_dist_net1, 'Afstand til smartnet': fs_dist_net2, 'forventet nøjagtighed': fs_noj}
-fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand til GPSnet', 'Afstand til Smartnet', 'forventet nøjagtighed'])
+                'Difference': fs_difference, 'Afstand1': fs_dist_net1, 'Afstand2': fs_dist_net2, 'forventet nøjagtighed': fs_noj}
+fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand1', 'Afstand2', 'forventet nøjagtighed'])
 
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
@@ -311,18 +311,18 @@ Mean difference for hvert punkt delt i net minus forventet nøjagtighed
 mean_GPS_df = GPS_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
 usik_df = GPS_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
 mean_usik_GPS = mean_GPS_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
-mean_usik_GPS['Rettet mean difference'] = mean_usik_GPS['Difference'] - mean_usik_GPS['forventet nøjagtighed']
+mean_usik_GPS['Rettet mean difference'] = abs(mean_usik_GPS['Difference']) - mean_usik_GPS['forventet nøjagtighed']
 
 mean_smart_df = smart_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
 usik_df = smart_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
 mean_usik_smart = mean_smart_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
-mean_usik_smart['Rettet mean difference'] = mean_usik_smart['Difference'] - mean_usik_smart['forventet nøjagtighed']
+mean_usik_smart['Rettet mean difference'] = abs(mean_usik_smart['Difference']) - mean_usik_smart['forventet nøjagtighed']
 
 
 mean_fs_df = fs_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
 usik_df = fs_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
 mean_usik_fs = mean_fs_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
-mean_usik_fs['Rettet mean difference'] = mean_usik_fs['Difference'] - mean_usik_fs['forventet nøjagtighed']
+mean_usik_fs['Rettet mean difference'] = abs(mean_usik_fs['Difference']) - mean_usik_fs['forventet nøjagtighed']
 
 """
 mean difference af alle målinger for hvert punkt (uden outliers) med konfidensinterval
@@ -557,7 +557,7 @@ plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylim(-100,100)
 plt.ylabel("Difference [mm]")
-plt.title('Fast static for Leica')
+plt.title('Fast static for Trimble')
 plt.savefig("Figurer_Trimble/FS_G_all.png")
 
 
@@ -676,7 +676,7 @@ plt.ylabel("Difference [mm]")
 plt.title('Trimble')
 plt.savefig("Figurer_Trimble/FS_RTK_G_all.png")
 
-#plt.close('all')
+plt.close('all')
 
 #%%
 # RTK Leica på smartnet: Spredning af måling 1 og 2, samt difference mellem middelværdierne 
@@ -870,7 +870,23 @@ plt.title('Septentrio på GPSnet \n \n Spredning på 1. og 2. måling samt diffe
 #manager.resize(*manager.window.maxsize())
 plt.savefig("Figurer/RTK_std_diff_S_G.png")
 
-#Plot RTK mean med konfidensinterval
+plt.close('all')
+
+#%%
+# # Vi ændrer lige figurstørrelsen:
+# get current size
+fig_size = plt.rcParams["figure.figsize"]
+#print ("Current size:", fig_size)
+# let's make the plots a bit bigger than the default
+# set figure width to 14 and height to 6
+fig_size[0] = 14
+fig_size[1] = 8
+plt.rcParams["figure.figsize"] = fig_size
+#print ("Current size:", fig_size)
+'''
+Plots med konfidensinterval
+'''
+# Plot RTK mean med konfidensinterval
 plt.figure(17)
 x = konfidens_df['Punkt']
 y = konfidens_df['Middel difference']
@@ -880,9 +896,41 @@ plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
 plt.title('RTK nøjagtighed med konfidensinterval')
 plt.savefig("Figurer/RTK_conf_all.png")
+#%%
 
-#Plot FS mean med konfidensinterval
+# Plot RTK mean med konfidensinterval OG den forventede nøjagtighed i grå
 plt.figure(18)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the scatter with errorbars (use host. instead of plt.)
+x = konfidens_df['Punkt']
+y = konfidens_df['Middel difference']
+konf = [list(konfidens_df['Nedre grænse']), list(konfidens_df['Øvre grænse'])]
+p3 = host.errorbar(x, y, yerr=konf,capsize=0.8, fmt='.')
+
+# plot the bar plot (use par. instead of plt.)
+x = mean_usik_GPS['Punkt']
+y = mean_usik_GPS['forventet nøjagtighed']
+y2 = -mean_usik_GPS['forventet nøjagtighed']
+p1 = par.bar(x, y, color='silver', label = 'Forventet nøjagtighed')
+p2 = par.bar(x, y2, color='silver')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+host.set_ylim(-50, 50)
+par.set_ylim(-50, 50)
+host.set_ylabel("Difference [mm]")
+par.set_ylabel("Nøjagtighed [mm]")
+plt.title('RTK nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+plt.savefig("Figurer/RTK_conf_med forventet_noj_all.png")
+#%%
+
+# Plot FS mean med konfidensinterval
+plt.figure(19)
 x = fs_konfidens_df['Punkt']
 y = fs_konfidens_df['Middel difference']
 konf = [list(fs_konfidens_df['Nedre grænse']), list(fs_konfidens_df['Øvre grænse'])]
@@ -892,34 +940,70 @@ plt.ylabel("Difference [mm]")
 plt.title('Fast Static nøjagtighed med konfidensinterval')
 plt.savefig("Figurer/FS_conf_all.png")
 
+# Plot FS mean med konfidensinterval OG den forventede nøjagtighed i grå
+plt.figure(20)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the scatter with errorbars (use host. instead of plt.)
+x = fs_konfidens_df['Punkt']
+y = fs_konfidens_df['Middel difference']
+konf = [list(fs_konfidens_df['Nedre grænse']), list(fs_konfidens_df['Øvre grænse'])]
+p3 = host.errorbar(x, y, yerr=konf,capsize=0.8, fmt='.')
+
+# plot the bar plot (use par. instead of plt.)
+x = mean_usik_fs['Punkt']
+y = mean_usik_fs['forventet nøjagtighed']
+y2 = -mean_usik_fs['forventet nøjagtighed']
+p1 = par.bar(x, y, color='silver', label = 'Forventet nøjagtighed')
+p2 = par.bar(x, y2, color='silver')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+host.set_ylim(-50, 50)
+par.set_ylim(-50, 50)
+host.set_ylabel("Difference [mm]")
+par.set_ylabel("Nøjagtighed [mm]")
+plt.title('FS nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+plt.savefig("Figurer/FS_conf_med forventet_noj_all.png")
+#%%
+
 #Plot rettet mean difference GPSnet
-plt.figure(19)
-mean_usik_GPS.plot(kind='scatter', x='Punkt', y='Rettet mean difference', color='b', marker = '.')
+plt.figure(21)
+mean_usik_GPS.plot(kind='bar', x='Punkt', y='Rettet mean difference', color='b')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation='vertical')
-plt.ylim(-100,100)
+plt.ylim(-40,40)
 plt.ylabel("Difference [mm]")
-plt.title('GPSnet. Mean difference minus forventet nøjagtighed')
+plt.title('GPSnet \n Middeldifference minus forventet nøjagtighed')
+plt.savefig("Figurer/Noejagtighed_G.png")
 
 #Plot rettet mean difference smartnet
-plt.figure(20)
-mean_usik_smart.plot(kind='scatter', x='Punkt', y='Rettet mean difference', color='b', marker = '.')
+plt.figure(22)
+mean_usik_smart.plot(kind='bar', x='Punkt', y='Rettet mean difference', color='b')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation='vertical')
-plt.ylim(-100,100)
+plt.ylim(-40,40)
 plt.ylabel("Difference [mm]")
-plt.title('Smartnet. Mean difference minus forventet nøjagtighed')
+plt.title('Smartnet \n Middeldifference minus forventet nøjagtighed')
+plt.savefig("Figurer/Noejagtighed_H.png")
 
 #Plot rettet mean difference fast static
-plt.figure(21)
-mean_usik_fs.plot(kind='scatter', x='Punkt', y='Rettet mean difference', color='b', marker = '.')
+plt.figure(23)
+mean_usik_fs.plot(kind='bar', x='Punkt', y='Rettet mean difference', color='b')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation='vertical')
-plt.ylim(-100,100)
+plt.ylim(-40,40)
 plt.ylabel("Difference [mm]")
-plt.title('Fast static. Mean difference minus forventet nøjagtighed')
+plt.title('Fast static \n Middeldifference minus forventet nøjagtighed')
+plt.savefig("Figurer/Noejagtighed_FS.png")
 
-plt.show()
+#plt.show()
+
+# %%

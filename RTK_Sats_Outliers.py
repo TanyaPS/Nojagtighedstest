@@ -1,3 +1,4 @@
+#%%
 """
 Plot af satellitantal for punkter i RTK-målingen i GNSS-nøjagtighedsundersøgelse
 
@@ -90,7 +91,7 @@ Inddeling i kvantiler ift. satellitantal
 """
 print('Del ind i satellitter: ' + str(statistics.quantiles(df.Satellitter_gns, n=3, method='inclusive')))
 
-
+#%%
 """
 PLOTS
 """
