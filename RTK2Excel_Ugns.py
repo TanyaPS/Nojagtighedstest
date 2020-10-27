@@ -145,6 +145,7 @@ for j, name in enumerate(maaler):
                     22,
                     20,
                     20,
+                    20,
                     20
                 ],
             ]
@@ -242,6 +243,7 @@ for j, name in enumerate(maaler):
                     18,
                     21,
                     22,
+                    18,
                     18,
                     18,
                     18
@@ -343,6 +345,7 @@ for j, name in enumerate(maaler):
                     31,
                     29,
                     29,
+                    29,
                     29
                 ],
             ]
@@ -397,7 +400,8 @@ result.columns = [
     "Måler",
     "Bemærkning",
     "Afstand til GPSnet",
-    "Afstand til Smartnet"
+    "Afstand til Smartnet",
+    "5D"
 ]
 for ind in result.index:
     punkt_name = re.sub("[^A-Za-z0-9]+", "", result["Punktnavn"][ind])
@@ -411,6 +415,7 @@ for ind in result.index:
             index, "Ellipsoidehøjdekvalitet"]
         result["Afstand til GPSnet"][ind] = sheet1[index, "Afstand_GPSnet"]
         result["Afstand til Smartnet"][ind] = sheet1[index, "Afstand_Smartnet"]
+        result["5D"][ind] = '5D'
     elif punkt_name in sheet2.column["Ident"]:
         index = sheet2.column["Ident"].index(punkt_name)
         # print(sheet2[index,"Sektor"])
@@ -421,6 +426,7 @@ for ind in result.index:
             index, "Ellipsoidehøjdekvalitet"]
         result["Afstand til GPSnet"][ind] = sheet2[index, "Afstand_GPSnet"]
         result["Afstand til Smartnet"][ind] = sheet2[index, "Afstand_Smartnet"]
+        result["5D"][ind] = ''
     elif punkt_name in sheet2.column["Landsnummer"]:
         index = sheet2.column["Landsnummer"].index(punkt_name)
         result["Sektor"][ind] = sheet2[index, "Sektor"]
@@ -430,6 +436,7 @@ for ind in result.index:
             index, "Ellipsoidehøjdekvalitet"]
         result["Afstand til GPSnet"][ind] = sheet2[index, "Afstand_GPSnet"]
         result["Afstand til Smartnet"][ind] = sheet2[index, "Afstand_Smartnet"]
+        result["5D"][ind] = ''
     elif punkt_name in sheet3.column["Landsnr"]:
         index = sheet3.column["Landsnr"].index(punkt_name)
         # print(sheet3[index,"Sektor"])
@@ -440,6 +447,7 @@ for ind in result.index:
             index, "Ellipsoidehøjdekvalitet"]
         result["Afstand til GPSnet"][ind] = sheet3[index, "Afstand_GPSnet"]
         result["Afstand til Smartnet"][ind] = sheet3[index, "Afstand_Smartnet"]
+        result["5D"][ind] = ''
 
 
 # udskift punktum med komma

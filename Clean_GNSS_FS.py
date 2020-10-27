@@ -67,6 +67,7 @@ meas = []
 dist1 = []
 dist2 = []
 usikkerhed = []
+femd = []
 h = 0
 
 # 
@@ -89,15 +90,19 @@ for i, p in enumerate(punkt):
         if p in sheet1.column["GPS_NR"]:
             index = sheet1.column["GPS_NR"].index(p)
             elip_db.append(sheet1[index, "Ellipsoidehøjde"])
+            fd = '5D'
         elif p in sheet2.column["Ident"]:
             index = sheet2.column["Ident"].index(p)
             elip_db.append(sheet2[index, "Ellipsoidehøjde"])
+            fd = ''
         elif p in sheet2.column["Landsnummer"]:
             index = sheet2.column["Landsnummer"].index(p)
             elip_db.append(sheet2[index, "Ellipsoidehøjde"])
+            fd = ''
         elif p in sheet3.column["Landsnr"]:
             index = sheet3.column["Landsnr"].index(p)
             elip_db.append(sheet3[index, "Ellipsoidehøjde"])
+            fd = ''
         else:
             continue
         if elip_db[-1] == '':
@@ -116,11 +121,12 @@ for i, p in enumerate(punkt):
             dist1.append(afstand1[i])
             dist2.append(afstand2[i])
             usikkerhed.append(5+0.5*afstand1[i])
+            femd.append(fd)
 
 
 data_dict = {'Punkt': pkt, 'Måling nr.': meas, 'Instrument': instr, 'Ellipsoideh [m]': elip_m, 
-             'Difference [mm]': diff, 'Afstand1 [km]': dist1, 'Afstand2 [km]': dist2, 'Forventet nøjagtighed [mm]': usikkerhed}
+             'Difference [mm]': diff, 'Afstand1 [km]': dist1, 'Afstand2 [km]': dist2, 'Forventet nøjagtighed [mm]': usikkerhed, '5D': femd}
 df = DataFrame(data_dict,columns=['Punkt', 'Måling nr.', 'Instrument', 'Ellipsoideh [m]', 
-                                  'Difference [mm]', 'Afstand1 [km]', 'Afstand2 [km]', 'Forventet nøjagtighed [mm]'])
+                                  'Difference [mm]', 'Afstand1 [km]', 'Afstand2 [km]', 'Forventet nøjagtighed [mm]', '5D'])
 
 df.to_excel('Cleaned_GNSS_FS.xlsx')

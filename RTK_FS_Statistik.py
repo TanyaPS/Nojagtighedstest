@@ -16,6 +16,8 @@ import re
 import numpy as np
 import scipy.stats as st
 from mpl_toolkits.axes_grid1 import host_subplot
+from datetime import datetime
+
 
 
 
@@ -37,6 +39,7 @@ difference = data.column[11]
 PDOP = data.column[12]
 dist_net = data.column[13]
 noj = data.column[14]
+femd = data.column[15]
 
 # Fast static
 fs_punkt = fs_data.column[1]
@@ -47,6 +50,7 @@ fs_maaling = fs_data.column[2]
 fs_dist_net1 = fs_data.column[6]
 fs_dist_net2 = fs_data.column[7]
 fs_noj = fs_data.column[8]
+fs_femd = fs_data.column[9]
 
 
 # Spring tomme felter over
@@ -112,14 +116,14 @@ Indlæsning af data i dataframe
 # RTK
 data_dict = {'Punkt': punkt, 'Dato': dato,'Ellipsoidehøjde': ellipsoidehøjde,'Ellipsoidehøjdekvalitet': ellipsoidehøjdekvalitet,
              'Måling nr.': meas_num, 'Instrument': instrument, 'Net': net, 'Sektor': sektor, 'Satellitter': satellitter, 
-             'Satellitter_gns': satellitter_gns, 'Difference': difference, 'PDOP': PDOP, 'Afstand til reference station': dist_net, 'forventet nøjagtighed': noj}
+             'Satellitter_gns': satellitter_gns, 'Difference': difference, 'PDOP': PDOP, 'Afstand til reference station': dist_net, 'forventet nøjagtighed': noj, '5D': femd}
 df = pd.DataFrame(data_dict, columns = ['Punkt','Dato','Ellipsoidehøjde','Ellipsoidehøjdekvalitet','Måling nr.','Instrument',
-                                        'Net','Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP', 'Afstand til reference station', 'forventet nøjagtighed'])
+                                        'Net','Sektor','Satellitter', 'Satellitter_gns', 'Difference', 'PDOP', 'Afstand til reference station', 'forventet nøjagtighed', '5D'])
 
 # Fast static
 fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Måling nr.': fs_maaling, 'Instrument': fs_instrument, 
-                'Difference': fs_difference, 'Afstand1': fs_dist_net1, 'Afstand2': fs_dist_net2, 'forventet nøjagtighed': fs_noj}
-fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand1', 'Afstand2', 'forventet nøjagtighed'])
+                'Difference': fs_difference, 'Afstand1': fs_dist_net1, 'Afstand2': fs_dist_net2, 'forventet nøjagtighed': fs_noj, '5D': fs_femd}
+fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand1', 'Afstand2', 'forventet nøjagtighed', '5D'])
 
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
@@ -243,6 +247,28 @@ second_smart_Sept= diff_smart_Sept[:][diff_smart_Sept['Måling nr.'] == 2]
 first_GPS_Sept= diff_GPS_Sept[:][diff_GPS_Sept['Måling nr.'] == 1]
 second_GPS_Sept= diff_GPS_Sept[:][diff_GPS_Sept['Måling nr.'] == 2]
 
+#Find tid mellem 1. og 2. måling
+first_df = df[:][df['Måling nr.'] == 1]
+second_df = df[:][df['Måling nr.'] == 2]
+
+dato_diff = []
+dato_diff_pkt = []
+unikke_pkter = np.unique(df.Punkt)
+for pkt in unikke_pkter:
+    first = first_df[:][first_df['Punkt'] == pkt]
+    second = second_df[:][second_df['Punkt'] == pkt]
+    if len(first.index) > 0 and len(second.index) > 0:
+        min_first = first.Dato.min()
+        min_second = second.Dato.min()
+        d_diff = min_second - min_first
+        dato_diff.append(d_diff.days*24 + d_diff.seconds/3600)
+        dato_diff_pkt.append(pkt)
+
+dato_dict = {'Punkt': dato_diff_pkt, 'Dato difference': dato_diff}
+dato_df = pd.DataFrame(dato_dict, columns = ['Punkt', 'Dato difference'])
+
+
+
 # RTK std for målinger (std af ca 3 målinger) (både måling 1 og 2)
 smart_Leica_h_std = mean_std(smart_Leica, 'Ellipsoidehøjde')
 GPS_Leica_h_std =  mean_std(GPS_Leica, 'Ellipsoidehøjde')
@@ -309,20 +335,46 @@ GPS_Sept_dd = diff_diff(first_GPS_Sept, second_GPS_Sept)
 Mean difference for hvert punkt delt i net minus forventet nøjagtighed
 """
 mean_GPS_df = GPS_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+fd_df = GPS_df.groupby(['Punkt'])['5D'].first().reset_index()
 usik_df = GPS_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
-mean_usik_GPS = mean_GPS_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+temp = mean_GPS_df.merge(fd_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_GPS = temp.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
 mean_usik_GPS['Rettet mean difference'] = abs(mean_usik_GPS['Difference']) - mean_usik_GPS['forventet nøjagtighed']
+#Del i 5D punkter og ikke 5D punkter
+mean_usik_GPS_fd = mean_usik_GPS[:][mean_usik_GPS['5D'] == '5D']
+mean_usik_GPS_ufd = mean_usik_GPS[:][mean_usik_GPS['5D'] == '']
 
 mean_smart_df = smart_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+fd_df = smart_df.groupby(['Punkt'])['5D'].first().reset_index()
 usik_df = smart_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
-mean_usik_smart = mean_smart_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
-mean_usik_smart['Rettet mean difference'] = abs(mean_usik_smart['Difference']) - mean_usik_smart['forventet nøjagtighed']
+temp = mean_smart_df.merge(fd_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_smart = temp.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_smart['Rettet mean difference'] = mean_usik_smart['Difference']  - mean_usik_smart['forventet nøjagtighed']
+#Del i 5D punkter og ikke 5D punkter
+mean_usik_smart_fd = mean_usik_smart[:][mean_usik_smart['5D'] == '5D']
+mean_usik_smart_ufd = mean_usik_smart[:][mean_usik_smart['5D'] == '']
+
+mean_RTK_df = df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+fd_df = df.groupby(['Punkt'])['5D'].first().reset_index()
+usik_df = df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
+temp = mean_RTK_df.merge(fd_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_RTK = temp.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_RTK['Rettet mean difference'] = abs(mean_usik_RTK['Difference']) - mean_usik_RTK['forventet nøjagtighed']
+#Del i 5D punkter og ikke 5D punkter
+mean_usik_RTK_fd = mean_usik_RTK[:][mean_usik_RTK['5D'] == '5D']
+mean_usik_RTK_ufd = mean_usik_RTK[:][mean_usik_RTK['5D'] == '']
 
 
 mean_fs_df = fs_df.groupby(['Punkt'])['Difference'].agg('mean').reset_index()
+fd_df = fs_df.groupby(['Punkt'])['5D'].first().reset_index()
 usik_df = fs_df.groupby(['Punkt'])['forventet nøjagtighed'].agg('min').reset_index()
-mean_usik_fs = mean_fs_df.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
-mean_usik_fs['Rettet mean difference'] = abs(mean_usik_fs['Difference']) - mean_usik_fs['forventet nøjagtighed']
+temp = mean_fs_df.merge(fd_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_fs = temp.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
+mean_usik_fs['Rettet mean difference'] = mean_usik_fs['Difference'] - mean_usik_fs['forventet nøjagtighed']
+#Del i 5D punkter og ikke 5D punkter
+mean_usik_fs_fd = mean_usik_GPS[:][mean_usik_GPS['5D'] == '5D']
+mean_usik_fs_ufd = mean_usik_GPS[:][mean_usik_GPS['5D'] == '']
+
 
 """
 mean difference af alle målinger for hvert punkt (uden outliers) med konfidensinterval
@@ -331,6 +383,8 @@ RTK_mean = []
 RTK_ned = []
 RTK_op = []
 RTK_dist = []
+RTK_usik = []
+RTK_fd = []
 unikke_pkter = np.unique(df.Punkt)
 unikke_pkter.sort()
 for pkt in unikke_pkter:
@@ -340,15 +394,17 @@ for pkt in unikke_pkter:
     RTK_mean.append(pkt_m_c[0])
     RTK_ned.append(pkt_m_c[0]-pkt_m_c[1])
     RTK_op.append(pkt_m_c[2]-pkt_m_c[0])
+    RTK_fd.append(pkt_df.iloc[0]['5D'])
 
-konfidens_dict = {'Punkt': unikke_pkter, 'Middel difference': RTK_mean, 'Nedre grænse': RTK_ned, 'Øvre grænse': RTK_op, 'Afstand til net': RTK_dist}
-konfidens_df = pd.DataFrame(konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse', 'Afstand til net'])
+konfidens_dict = {'Punkt': unikke_pkter, 'Middel difference': RTK_mean, 'Nedre grænse': RTK_ned, 'Øvre grænse': RTK_op, 'Afstand til net': RTK_dist, '5D': RTK_fd}
+konfidens_df = pd.DataFrame(konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse', 'Afstand til net', '5D'])
 #konfidens_df.sort_values(by=['Afstand til net'])
 
 
 fs_mean = []
 fs_ned = []
 fs_op = []
+fs_fd = []
 fs_unikke_pkter = np.unique(fs_df.Punkt)
 fs_unikke_pkter.sort()
 for pkt in fs_unikke_pkter:
@@ -357,9 +413,18 @@ for pkt in fs_unikke_pkter:
     fs_mean.append(fs_pkt_m_c[0])
     fs_ned.append(fs_pkt_m_c[0]-fs_pkt_m_c[1])
     fs_op.append(fs_pkt_m_c[2]-fs_pkt_m_c[0])
+    fs_fd.append(fs_pkt.iloc[0]['5D'])
 
-fs_konfidens_dict = {'Punkt': fs_unikke_pkter, 'Middel difference': fs_mean, 'Nedre grænse': fs_ned, 'Øvre grænse': fs_op}
-fs_konfidens_df = pd.DataFrame(fs_konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse'])
+fs_konfidens_dict = {'Punkt': fs_unikke_pkter, 'Middel difference': fs_mean, 'Nedre grænse': fs_ned, 'Øvre grænse': fs_op, '5D': fs_fd}
+fs_konfidens_df = pd.DataFrame(fs_konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse', '5D'])
+
+#Del i 5D of ikke 5D
+
+fs_fd_konfidens = fs_konfidens_df[:][fs_konfidens_df['5D'] == '5D']
+fs_ufd_konfidens = fs_konfidens_df[:][fs_konfidens_df['5D'] == '']
+
+RTK_fd_konfidens = konfidens_df[:][konfidens_df['5D'] == '5D']
+RTK_ufd_konfidens = konfidens_df[:][konfidens_df['5D'] == '']
 
 
 #%%
@@ -898,21 +963,21 @@ plt.title('RTK nøjagtighed med konfidensinterval')
 plt.savefig("Figurer/RTK_conf_all.png")
 #%%
 
-# Plot RTK mean med konfidensinterval OG den forventede nøjagtighed i grå
+#Plot RTK 5D punkter. Nøjagtighed (mean) med konfidens interval og forventet nøjagtighed 
 plt.figure(18)
 host = host_subplot(111)
 par = host.twinx()
 
 # plot the scatter with errorbars (use host. instead of plt.)
-x = konfidens_df['Punkt']
-y = konfidens_df['Middel difference']
-konf = [list(konfidens_df['Nedre grænse']), list(konfidens_df['Øvre grænse'])]
+x = RTK_fd_konfidens['Punkt']
+y = RTK_fd_konfidens['Middel difference']
+konf = [list(RTK_fd_konfidens['Nedre grænse']), list(RTK_fd_konfidens['Øvre grænse'])]
 p3 = host.errorbar(x, y, yerr=konf,capsize=0.8, fmt='.')
 
 # plot the bar plot (use par. instead of plt.)
-x = mean_usik_GPS['Punkt']
-y = mean_usik_GPS['forventet nøjagtighed']
-y2 = -mean_usik_GPS['forventet nøjagtighed']
+x = mean_usik_RTK_fd['Punkt']
+y = mean_usik_RTK_fd['forventet nøjagtighed']
+y2 = -mean_usik_RTK_fd['forventet nøjagtighed']
 p1 = par.bar(x, y, color='silver', label = 'Forventet nøjagtighed')
 p2 = par.bar(x, y2, color='silver')
 
@@ -923,14 +988,48 @@ host.set_ylim(-50, 50)
 par.set_ylim(-50, 50)
 host.set_ylabel("Difference [mm]")
 par.set_ylabel("Nøjagtighed [mm]")
-plt.title('RTK nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
+plt.title('5D punkter RTK nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/RTK_conf_med forventet_noj_all.png")
+plt.savefig("Figurer/RTK_conf_med forventet_noj_5D.png")
+
+
+#Plot RTK ikke 5D punkter. Nøjagtighed (mean) med konfidens interval og forventet nøjagtighed 
+plt.figure(19)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the scatter with errorbars (use host. instead of plt.)
+x = RTK_ufd_konfidens['Punkt']
+y = RTK_ufd_konfidens['Middel difference']
+konf = [list(RTK_ufd_konfidens['Nedre grænse']), list(RTK_ufd_konfidens['Øvre grænse'])]
+p3 = host.errorbar(x, y, yerr=konf,capsize=0.8, fmt='.')
+
+# plot the bar plot (use par. instead of plt.)
+x = mean_usik_RTK_ufd['Punkt']
+y = mean_usik_RTK_ufd['forventet nøjagtighed']
+y2 = -mean_usik_RTK_ufd['forventet nøjagtighed']
+p1 = par.bar(x, y, color='silver', label = 'Forventet nøjagtighed')
+p2 = par.bar(x, y2, color='silver')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+host.set_ylim(-50, 50)
+par.set_ylim(-50, 50)
+host.set_ylabel("Difference [mm]")
+par.set_ylabel("Nøjagtighed [mm]")
+plt.title('Ikke 5D punkter RTK nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+plt.savefig("Figurer/RTK_conf_med forventet_noj.png")
+
+
+
 #%%
 
 # Plot FS mean med konfidensinterval
-plt.figure(19)
+plt.figure(20)
 x = fs_konfidens_df['Punkt']
 y = fs_konfidens_df['Middel difference']
 konf = [list(fs_konfidens_df['Nedre grænse']), list(fs_konfidens_df['Øvre grænse'])]
@@ -940,21 +1039,21 @@ plt.ylabel("Difference [mm]")
 plt.title('Fast Static nøjagtighed med konfidensinterval')
 plt.savefig("Figurer/FS_conf_all.png")
 
-# Plot FS mean med konfidensinterval OG den forventede nøjagtighed i grå
-plt.figure(20)
+#Plot fast static 5D punkter. Nøjagtighed (mean) med konfidens interval og forventet nøjagtighed 
+plt.figure(21)
 host = host_subplot(111)
 par = host.twinx()
 
 # plot the scatter with errorbars (use host. instead of plt.)
-x = fs_konfidens_df['Punkt']
-y = fs_konfidens_df['Middel difference']
-konf = [list(fs_konfidens_df['Nedre grænse']), list(fs_konfidens_df['Øvre grænse'])]
+x = fs_fd_konfidens['Punkt']
+y = fs_fd_konfidens['Middel difference']
+konf = [list(fs_fd_konfidens['Nedre grænse']), list(fs_fd_konfidens['Øvre grænse'])]
 p3 = host.errorbar(x, y, yerr=konf,capsize=0.8, fmt='.')
 
 # plot the bar plot (use par. instead of plt.)
-x = mean_usik_fs['Punkt']
-y = mean_usik_fs['forventet nøjagtighed']
-y2 = -mean_usik_fs['forventet nøjagtighed']
+x = mean_usik_fs_fd['Punkt']
+y = mean_usik_fs_fd['forventet nøjagtighed']
+y2 = -mean_usik_fs_fd['forventet nøjagtighed']
 p1 = par.bar(x, y, color='silver', label = 'Forventet nøjagtighed')
 p2 = par.bar(x, y2, color='silver')
 
@@ -965,45 +1064,53 @@ host.set_ylim(-50, 50)
 par.set_ylim(-50, 50)
 host.set_ylabel("Difference [mm]")
 par.set_ylabel("Nøjagtighed [mm]")
-plt.title('FS nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
+plt.title('5D punkter FS nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
 #manager = plt.get_current_fig_manager()
 #manager.resize(*manager.window.maxsize())
-plt.savefig("Figurer/FS_conf_med forventet_noj_all.png")
+plt.savefig("Figurer/FS_conf_med forventet_noj_5D.png")
+
+#Plot fast static ikke 5D punkter. Nøjagtighed (mean) med konfidens interval og forventet nøjagtighed 
+plt.figure(22)
+host = host_subplot(111)
+par = host.twinx()
+
+# plot the scatter with errorbars (use host. instead of plt.)
+x = fs_ufd_konfidens['Punkt']
+y = fs_ufd_konfidens['Middel difference']
+konf = [list(fs_ufd_konfidens['Nedre grænse']), list(fs_ufd_konfidens['Øvre grænse'])]
+p3 = host.errorbar(x, y, yerr=konf,capsize=0.8, fmt='.')
+
+# plot the bar plot (use par. instead of plt.)
+x = mean_usik_fs_ufd['Punkt']
+y = mean_usik_fs_ufd['forventet nøjagtighed']
+y2 = -mean_usik_fs_ufd['forventet nøjagtighed']
+p1 = par.bar(x, y, color='silver', label = 'Forventet nøjagtighed')
+p2 = par.bar(x, y2, color='silver')
+
+plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
+plt.legend(fontsize='xx-small',loc='best')
+plt.xticks(rotation='vertical')
+host.set_ylim(-50, 50)
+par.set_ylim(-50, 50)
+host.set_ylabel("Difference [mm]")
+par.set_ylabel("Nøjagtighed [mm]")
+plt.title('Ikke 5D punkter FS nøjagtighed med konfidensinterval \n \n samt forventet nøjagtighed', fontsize=10)
+#manager = plt.get_current_fig_manager()
+#manager.resize(*manager.window.maxsize())
+plt.savefig("Figurer/FS_conf_med forventet_noj.png")
 #%%
 
-#Plot rettet mean difference GPSnet
-plt.figure(21)
-mean_usik_GPS.plot(kind='bar', x='Punkt', y='Rettet mean difference', color='b')
 
-plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
-plt.xticks(rotation='vertical')
-plt.ylim(-40,40)
-plt.ylabel("Difference [mm]")
-plt.title('GPSnet \n Middeldifference minus forventet nøjagtighed')
-plt.savefig("Figurer/Noejagtighed_G.png")
-
-#Plot rettet mean difference smartnet
-plt.figure(22)
-mean_usik_smart.plot(kind='bar', x='Punkt', y='Rettet mean difference', color='b')
-
-plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
-plt.xticks(rotation='vertical')
-plt.ylim(-40,40)
-plt.ylabel("Difference [mm]")
-plt.title('Smartnet \n Middeldifference minus forventet nøjagtighed')
-plt.savefig("Figurer/Noejagtighed_H.png")
-
-#Plot rettet mean difference fast static
+#Plot tid mellem 1. og 2. måling
 plt.figure(23)
-mean_usik_fs.plot(kind='bar', x='Punkt', y='Rettet mean difference', color='b')
+dato_df.plot(kind='scatter', x='Punkt', y='Dato difference', color='b', marker = '.')
 
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.9)
 plt.xticks(rotation='vertical')
-plt.ylim(-40,40)
-plt.ylabel("Difference [mm]")
-plt.title('Fast static \n Middeldifference minus forventet nøjagtighed')
-plt.savefig("Figurer/Noejagtighed_FS.png")
+plt.ylabel("Tidsforskel [hr]")
+plt.axhline(y=6)
+plt.title('RTK tidsforskel \n mellem 1. og 2. måling')
 
-#plt.show()
+plt.show()
 
 # %%

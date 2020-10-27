@@ -31,6 +31,7 @@ PDOP = data.column[24]
 PDOP_max = data.column[33]
 dist_GPSnet = data.column[38]
 dist_smart = data.column[39]
+femd = data.column[40]
 
 # Lister oprettes til at fylde korrekt formateret data ind i
 satellitter = []
@@ -46,6 +47,7 @@ difference = []
 p_dop = []
 dist_net = []
 usikkerhed = []
+fd = []
 
 # Her ensrettes datostempling og parametre for de forskellige instrumenter
 for i, sat in enumerate(sats):
@@ -87,7 +89,7 @@ for i, sat in enumerate(sats):
 
     if net[i] == 'H':
         dist_net.append(dist_smart[i])
-        usikkerhed.append(15+0.5*1000*1000*dist_smart[i]/1000000)
+        usikkerhed.append(15+0.5*dist_smart[i])
     elif net[i] == 'G':
         dist_net.append(dist_GPSnet[i])
         usikkerhed.append(15+0.5*1000*1000*dist_GPSnet[i]/1000000)
@@ -105,6 +107,7 @@ for i, sat in enumerate(sats):
     netv.append(net[i])
     sekt.append(sektor[i])
     punkter.append(pkter[i])
+    fd.append(femd[i])
 
 
 """
@@ -113,11 +116,11 @@ Indlæsning af data i dataframe
 
 data_dict = {'Punkt': punkter, 'Dato': dato, 'Ellipsoidehøjde [m]': e_h,'Ellipsoidehøjdekvalitet': kvalitet, 'Måling nr.': meas_number,
              'Instrument': instr, 'Net': netv, 'Sektor': sekt, 'Satellitter': satellitter, 'Difference [mm]': difference, 'PDOP': p_dop, 
-             'Afstand til referencestation [km]': dist_net, 'Forventet nøjagtighed [mm]': usikkerhed}
+             'Afstand til referencestation [km]': dist_net, 'Forventet nøjagtighed [mm]': usikkerhed, '5D': fd}
 # Dataframe for alt data
 df = DataFrame(data_dict,columns=['Punkt', 'Dato', 'Ellipsoidehøjde [m]', 'Ellipsoidehøjdekvalitet', 'Måling nr.', 'Instrument', 'Net', 
                                   'Sektor', 'Satellitter', 'Difference [mm]', 'PDOP', 'Afstand til referencestation [km]', 
-                                  'Forventet nøjagtighed [mm]'])
+                                  'Forventet nøjagtighed [mm]', '5D'])
 # Dataframes for hvert instrument på eget net
 df_HH = df[:][(df.Instrument == 'H') & (df.Net == 'H')] 
 df_GG = df[:][(df.Instrument == 'G') & (df.Net == 'G')]
