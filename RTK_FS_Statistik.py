@@ -373,8 +373,8 @@ temp = mean_fs_df.merge(fd_df, how='inner', left_on=["Punkt"], right_on=["Punkt"
 mean_usik_fs = temp.merge(usik_df, how='inner', left_on=["Punkt"], right_on=["Punkt"])
 mean_usik_fs['Rettet mean difference'] = mean_usik_fs['Difference'] - mean_usik_fs['forventet nøjagtighed']
 #Del i 5D punkter og ikke 5D punkter
-mean_usik_fs_fd = mean_usik_GPS[:][mean_usik_GPS['5D'] == '5D']
-mean_usik_fs_ufd = mean_usik_GPS[:][mean_usik_GPS['5D'] == '']
+mean_usik_fs_fd = mean_usik_fs[:][mean_usik_fs['5D'] == '5D']
+mean_usik_fs_ufd = mean_usik_fs[:][mean_usik_fs['5D'] == '']
 
 
 """
@@ -1113,6 +1113,6 @@ plt.ylim(-1, 200)
 plt.title('RTK time difference \n between 1. and 2. measurement')
 plt.savefig("Figurer/RTK_tidsforskel_ml_1_2.png")
 
-#plt.show()
+plt.show()
 
 # %%
