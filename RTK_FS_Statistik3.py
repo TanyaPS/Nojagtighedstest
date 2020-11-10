@@ -123,10 +123,8 @@ fs_data_dict = {'Punkt': fs_punkt, 'Ellipsoidehøjde': fs_ellipsoidehøjde, 'Må
                 'Difference': fs_difference, 'Afstand1': fs_dist_net1, 'Afstand2': fs_dist_net2, 'Forventet nøjagtighed': fs_noj, '5D': fs_femd}
 fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Måling nr.', 'Instrument', 'Difference', 'Afstand1', 'Afstand2', 'Forventet nøjagtighed', '5D'])
 #%%
-# CRAAAAAAAAAAAAAAAAAAAAP
+
 #satellit gennemsnit fra RTK merges til Fast static dataframe 
-#fs_df['Satellitter_gns'] = fs_df.merge(df, on='Punkt')['Satellitter_gns']
-#fs_dftest = fs_df.merge(df, left_on='Punkt', right_on='Punkt', how="inner")
 df_uni = df.groupby(['Punkt'])['Satellitter_gns'].agg('min').reset_index()
 fs_df['Satellitter_gns'] = fs_df['Punkt'].map(df_uni.set_index('Punkt')['Satellitter_gns'])
 
@@ -375,7 +373,7 @@ plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
-plt.title('RTK: Difference with confidence interval \n \n all points')
+plt.title('RTK: Difference with confidence interval \n \n For all points')
 plt.savefig("Figurer/RTK_conf_all_sort.png")
 n+=1
 
@@ -397,7 +395,7 @@ plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
-plt.title('RTK: Difference with confidence interval \n \n 5D points')
+plt.title('RTK: Difference with confidence interval \n \n For 5D points')
 plt.savefig("Figurer/RTK_conf_5D_sort.png")
 n+=1
 
@@ -418,7 +416,7 @@ plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
-plt.title('RTK: Difference with confidence interval \n \n non-5D points')
+plt.title('RTK: Difference with confidence interval \n \n For non-5D points')
 plt.savefig("Figurer/RTK_conf_non5D_sort.png")
 n+=1
 #%%
@@ -440,7 +438,7 @@ plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
-plt.title('FS: Difference with confidence interval \n \n all points')
+plt.title('FS: Difference with confidence interval \n \n For all points')
 plt.savefig("Figurer/FS_conf_all_sort.png")
 n+=1
 
@@ -462,7 +460,7 @@ plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
-plt.title('FS: Difference with confidence interval \n \n 5D points')
+plt.title('FS: Difference with confidence interval \n \n For 5D points')
 plt.savefig("Figurer/FS_conf_5D_sort.png")
 n+=1
 
@@ -484,7 +482,7 @@ plt.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.8)
 plt.legend(fontsize='xx-small',loc='best')
 plt.xticks(rotation='vertical')
 plt.ylabel("Difference [mm]")
-plt.title('FS: Difference with confidence interval \n \n non-5D points')
+plt.title('FS: Difference with confidence interval \n \n For non-5D points')
 plt.savefig("Figurer/FS_conf_non5D_sort.png")
 n+=1
 #%%
@@ -530,7 +528,8 @@ plt.grid(axis='y')
 plt.axhline(y=5) # døgn plus 5 timer
 plt.axhline(y=19) # døgn minus 5 timer
 plt.title('Time difference between 1. and 2. measurement \n \n For non-5D points')
-plt.savefig("Figurer/RTK_tidsforskel_ml_1_2_non-5D.png")
+plt.savefig("Figurer/RTK_tidsforskel_ml_1_2_non5D.png")
 n+=1
+
 
 # %%

@@ -127,9 +127,10 @@ fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Mål
 
 fs_df['Ellipsoidehøjde'] *=1000
 df['Ellipsoidehøjde'] *=1000
-
+#%%
 #satellit gennemsnit fra RTK merges til Fast static dataframe 
-fs_df =  fs_df.merge(df[['Punkt','Satellitter_gns']], how='inner', left_on=["Punkt"], right_on=["Punkt"])
+df_uni = df.groupby(['Punkt'])['Satellitter_gns'].agg('min').reset_index()
+fs_df['Satellitter_gns'] = fs_df['Punkt'].map(df_uni.set_index('Punkt')['Satellitter_gns'])
 
 #%%
 """
@@ -372,8 +373,6 @@ for pkt in unikke_pkter:
 
 konfidens_dict = {'Punkt': unikke_pkter, 'Middel difference': RTK_mean, 'Nedre grænse': RTK_ned, 'Øvre grænse': RTK_op, 'Afstand til net': RTK_dist, '5D': RTK_fd}
 konfidens_df = pd.DataFrame(konfidens_dict, columns = ['Punkt', 'Middel difference', 'Nedre grænse', 'Øvre grænse', 'Afstand til net', '5D'])
-#konfidens_df.sort_values(by=['Afstand til net'])
-
 
 fs_mean = []
 fs_ned = []
