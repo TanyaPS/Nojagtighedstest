@@ -126,8 +126,9 @@ fs_df = pd.DataFrame(fs_data_dict, columns = ['Punkt', 'Ellipsoidehøjde', 'Mål
 # CRAAAAAAAAAAAAAAAAAAAAP
 #satellit gennemsnit fra RTK merges til Fast static dataframe 
 #fs_df['Satellitter_gns'] = fs_df.merge(df, on='Punkt')['Satellitter_gns']
-fs_dftest = fs_df.merge(df, left_on='Punkt', right_on='Punkt', how="inner")
-
+#fs_dftest = fs_df.merge(df, left_on='Punkt', right_on='Punkt', how="inner")
+df_uni = df.groupby(['Punkt'])['Satellitter_gns'].agg('min').reset_index()
+fs_df['Satellitter_gns'] = fs_df['Punkt'].map(df_uni.set_index('Punkt')['Satellitter_gns'])
 
 #%%
 """
@@ -531,6 +532,5 @@ plt.axhline(y=19) # døgn minus 5 timer
 plt.title('Time difference between 1. and 2. measurement \n \n For non-5D points')
 plt.savefig("Figurer/RTK_tidsforskel_ml_1_2_non-5D.png")
 n+=1
-
 
 # %%
